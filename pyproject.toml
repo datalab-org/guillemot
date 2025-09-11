@@ -8,4 +8,13 @@ dependencies = [
     "logfire>=4.6.0",
     "pydantic-ai>=1.0.3",
     "python-dotenv>=1.1.1",
+    "optimade[http-client,client]",
+    "pytest",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

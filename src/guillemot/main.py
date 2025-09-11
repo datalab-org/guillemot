@@ -2,9 +2,9 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass
+from typing import List, Dict, Any, Literal
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 from pydantic_ai import Agent, BinaryContent, ImageUrl
@@ -136,6 +136,47 @@ def dummy_tool(query: str) -> str:
     Returns a simple string instead of complex structured data.
     """
     return f"🔧 Dummy tool activated! Received query: '{query}'. This is a test response generated at {datetime.now().strftime('%H:%M:%S')}."
+
+def get_optimade_cifs(elements: list[str], database: Literal["cod", "mp", "oqmd"]) -> list[str]:
+    """
+    Perform an OPITIMADE query for a set of elements to a restricted set of databases 
+    and return the results as a list of CIF strings.
+    
+    Parameters:
+        elements: A list of element symbols to query for, e.g., ["Li", "C", "O"]. 
+            Will be treated as an OPTIMADE `HAS ONLY` query, i.e., ?filter=elements HAS ONLY "Li", "C", "O",
+            or equivalently ?filter=elements HAS ALL "Li", "C", "O" AND elements LENGTH 3.
+        database: The database to query, one of "cod" (Crystallography Open Database),
+            "mp" (Materials Project), or "oqmd" (Open Quantum Materials Database).
+
+    """
+
+    allowed_database_endpoints = {
+        "cod": "https://www.crystallography.net/cod/optimade/",
+        "mp": "https://optimade.materialsproject.org",
+        "oqmd": "https://oqmd.org/optimade"
+    }
+
+    if database not in allowed_database_endpoints:
+        raise RuntimeError(f"Unknown database {database!r}. Must be one of 'cod', 'mp', or 'oqmd'.")
+
+    from optimade.client import OptimadeClient
+    from optimade.adapters import Structure
+
+    endpoint = allowed_database_endpoints[database]
+
+    client = OptimadeClient(endpoint)
+
+    if len(elements) > 1:
+        _filter = f'elements HAS ALL "{",".join(elements)}" AND elements LENGTH {len(elements)}'
+    else:
+        _filter = f'elements HAS "{elements[0]}" AND elements LENGTH 1'
+
+    results = client.get(_filter)
+
+    structures = [Structure(d) for d in results["structures"][_filter][endpoint]["data"]]
+
+    return [struct.as_cif for struct in structures]
 
 # Set up the pydantic-ai agent
 def create_agent() -> Agent:
