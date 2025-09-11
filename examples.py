@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Example: Extending Guillemot with Additional Tools
+Example: Extending Guillemot with Additional Tools and Multimodal Features
 
-This file demonstrates how to add new tools to the Guillemot LLM chat app.
-You can copy and modify these examples to create your own tools.
+This file demonstrates how to add new tools to the Guillemot LLM chat app
+and shows examples of multimodal image analysis.
 """
 
 import asyncio
@@ -13,7 +13,7 @@ import random
 from datetime import datetime
 from typing import Dict, Any
 from pydantic import BaseModel
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ImageUrl
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -161,11 +161,48 @@ async def demo_extended_tools():
         
         print()
 
+async def demo_multimodal_features():
+    """Demonstrate multimodal image analysis"""
+    print("\n🖼️  Guillemot Multimodal Image Demo")
+    print("=" * 40)
+    
+    model_name = os.getenv("AI_MODEL", "gemini-2.5-flash-lite")
+    agent = Agent(model_name)
+    
+    # Test with some public images
+    test_images = [
+        {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png",
+            "query": "What objects do you see in this image?"
+        },
+        {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png",
+            "query": "What technology logo is this?"
+        }
+    ]
+    
+    for i, test in enumerate(test_images, 1):
+        print(f"\n🖼️  Test {i}: {test['query']}")
+        print(f"Image URL: {test['url']}")
+        print("-" * 30)
+        
+        try:
+            result = await agent.run([
+                test['query'],
+                ImageUrl(url=test['url'])
+            ])
+            print(f"🤖 Analysis: {result.output}")
+        except Exception as e:
+            print(f"❌ Error analyzing image: {e}")
+        
+        print()
+
 if __name__ == "__main__":
-    print("This is a demo of extended tools for Guillemot.")
+    print("This is a demo of extended tools and multimodal features for Guillemot.")
     print("To use these tools in the main app, copy the tool functions")
     print("and add them to the agent in main.py")
     print()
     
-    # Run the demo
+    # Run the demos
     asyncio.run(demo_extended_tools())
+    asyncio.run(demo_multimodal_features())

@@ -7,7 +7,8 @@ A terminal-based LLM application using pydantic-ai with conversation memory and 
 - 🤖 **AI-powered chat**: Uses Gemini 2.5 Flash Lite model via pydantic-ai
 - 🧠 **Memory**: Maintains conversation history across interactions
 - 🔧 **Tool support**: Includes a dummy tool that can be extended with real functionality
-- 💬 **Interactive terminal interface**: Clean, emoji-enhanced chat experience
+- �️ **Multimodal image input**: Analyze images from URLs or local files
+- �💬 **Interactive terminal interface**: Clean, emoji-enhanced chat experience
 - ⚙️ **Environment-based configuration**: API keys and model settings via .env file
 
 ## Setup
@@ -34,7 +35,10 @@ python main.py
 ### Available Commands
 
 - **Chat normally**: Just type your message and press Enter
-- **`history`**: View recent conversation history
+- **Image analysis**: Include image URLs or local file paths in your message
+  - `"Describe this image: https://example.com/photo.jpg"`
+  - `"What's in this picture? /path/to/local/image.png"`
+- **`history`**: View recent conversation history (🖼️ indicates messages with images)
 - **`clear`**: Clear conversation history
 - **`quit`**, **`exit`**, or **`bye`**: Exit the application
 
@@ -44,14 +48,34 @@ The app includes a dummy tool that the AI can call when appropriate. Try asking 
 - "Can you use a tool to get some data?"
 - "Please call the dummy tool with 'test query'"
 
+### Image Analysis
+
+The app supports multimodal image input. You can:
+
+**Analyze images from URLs:**
+```
+Describe this logo: https://example.com/logo.png
+What colors are in this image? https://example.com/photo.jpg
+```
+
+**Analyze local image files:**
+```
+What's in this photo? /Users/username/Pictures/vacation.jpg
+Analyze this screenshot: ./screenshot.png
+```
+
+**Supported formats:** JPG, JPEG, PNG, GIF, BMP, WebP
+
+The AI can describe images, identify objects, read text in images, analyze colors, and answer questions about image content.
+
 ## Architecture
 
 ### Core Components
 
-- **ConversationHistory**: Manages chat memory and context
-- **DummyToolResult**: Pydantic model for tool responses
-- **Agent**: pydantic-ai agent with tool support
-- **Chat Loop**: Interactive terminal interface
+- **ConversationHistory**: Manages chat memory and context with image tracking
+- **Agent**: pydantic-ai agent with tool support and multimodal capabilities
+- **Image Processing**: URL and local file image loading with multiple format support
+- **Interactive Loop**: Clean terminal-based chat experience
 
 ### Tool System
 
