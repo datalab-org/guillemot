@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg
+*.eggs
+*.env
+*.venv
+venv/
+env/
+build/
+dist/
+*.egg-info/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# uv
+.uv/
+
+# Logs
+*.log
+
+# Test outputs
+htmlcov/
+.coverage
+.tox/
+
+# Misc
+*.sqlite3
+*.db
+notes.md
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment files
+.env
+.env.*
