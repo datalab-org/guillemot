@@ -1,15 +1,12 @@
-# Guillemot LLM Chat App
+<div align="center"> 
 
-A terminal-based LLM application using pydantic-ai with conversation memory and tool support.
+# *guillemot*
 
-## Features
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/f979aa22-6c39-4986-861b-53e37b486642" />
 
-- 🤖 **AI-powered chat**: Uses Gemini 2.5 Flash Lite model via pydantic-ai
-- 🧠 **Memory**: Maintains conversation history across interactions
-- 🔧 **Tool support**: Includes a dummy tool that can be extended with real functionality
-- �️ **Multimodal image input**: Analyze images from URLs or local files
-- �💬 **Interactive terminal interface**: Clean, emoji-enhanced chat experience
-- ⚙️ **Environment-based configuration**: API keys and model settings via .env file
+LLM and AI-assisted explorations into fitting of experimental diffraction data, coming at you from Team [*datalab*](https://github.com/datalab-org) for the 2025 LLM hackathon.
+
+</div>
 
 ## Setup
 
@@ -44,7 +41,7 @@ python main.py
 
 ### Tool Usage
 
-The app includes a dummy tool that the AI can call when appropriate. Try asking questions like:
+Currently includes a dummy tool as a placeholder. Responds to:
 - "Can you use a tool to get some data?"
 - "Please call the dummy tool with 'test query'"
 

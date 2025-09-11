@@ -35,6 +35,7 @@ htmlcov/
 # Misc
 *.sqlite3
 *.db
+notes.md
 
 # Jupyter
 .ipynb_checkpoints/
