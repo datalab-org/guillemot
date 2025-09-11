@@ -14,6 +14,14 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Configure Logfire if token is available
+try:
+    import logfire
+    logfire_token = os.getenv("LOGFIRE_TOKEN")
+    if logfire_token:
+        logfire.configure(token=logfire_token)
+except ImportError:
+    pass  # Logfire is optional
 
 @dataclass
 class ConversationHistory:
@@ -155,6 +163,7 @@ def create_agent() -> Agent:
         
         When using tools, explain what you're doing and why.""",
         tools=[dummy_tool],
+        instrument=True
     )
     
     return agent
