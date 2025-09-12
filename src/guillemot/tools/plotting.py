@@ -39,6 +39,7 @@ def plot_refinement_results(
     # ---- Load hkl file ----
     if hkl_file is not None:
         hkl_df = pd.read_csv(hkl_file, sep="\s+", comment="#", header=None)
+        hkl_df.sort_values(by=5, inplace=True)  # sort by two-theta
         h = hkl_df[0]
         k = hkl_df[1]
         l = hkl_df[2]
@@ -63,10 +64,46 @@ def plot_refinement_results(
         # Reflection ticks
         ymin, ymax = ax_main.get_ylim()
         tick_base = ymin + 0.0005 * (ymax - ymin)
-        for tt, inten in zip(two_theta, intensity):
-            ax_main.vlines(
-                tt, tick_base, tick_base + inten * 0.1 * (ymax - ymin), color="b", lw=1
-            )
+        # Determine x-limits for tick plotting
+        if x_range is not None:
+            x_min, x_max = x_range
+        else:
+            x_min, x_max = x.min(), x.max()
+        # Place hkl labels above the maximum of observed or calculated peak intensity at the tick position
+        max_label_y = None
+        last_label_x = None
+        min_label_dx = 0.02 * (x_max - x_min)
+        for tt, inten, h_val, k_val, l_val in zip(two_theta, intensity, h, k, l):
+            if x_min <= tt <= x_max:
+                ax_main.vlines(
+                    tt,
+                    tick_base,
+                    tick_base + inten * 0.1 * (ymax - ymin),
+                    color="b",
+                    lw=1,
+                )
+                # If too close to previous label, shift right to prev_x + min_label_dx
+                if last_label_x is not None and tt - last_label_x < min_label_dx:
+                    # print(last_label_x, tt)
+                    label_x = last_label_x + min_label_dx
+                else:
+                    label_x = tt
+                idx = (abs(x - tt)).idxmin()
+                y_peak = max(yobs[idx], ycalc[idx])
+                label_y = y_peak + 0.05 * (ymax - ymin)
+                ax_main.text(
+                    label_x,
+                    label_y,
+                    f"({int(h_val)},{int(k_val)},{int(l_val)})",
+                    color="b",
+                    fontsize=7,
+                    ha="center",
+                    va="bottom",
+                    rotation=90,
+                )
+                last_label_x = label_x
+                if max_label_y is None or label_y > max_label_y:
+                    max_label_y = label_y
         # Add a proxy artist for the legend
         from matplotlib.lines import Line2D
 
@@ -77,6 +114,12 @@ def plot_refinement_results(
         ax_main.legend(handles, labels)
 
     ax_main.set_ylabel("Intensity")
+    # Adjust ylim to provide a buffer for the highest label
+    if hkl_file is not None:
+        ymin, ymax = ax_main.get_ylim()
+        if "max_label_y" in locals() and max_label_y is not None:
+            buffer = 0.1 * (ymax - ymin)
+            ax_main.set_ylim(ymin, max(max_label_y + buffer, ymax))
 
     # Residual
     ax_resid.plot(x, yobs - ycalc, "g-", lw=0.7)
@@ -107,5 +150,5 @@ if __name__ == "__main__":
         output_file="examples/FeSb_19RBM/Runs/1/output.txt",
         save_path="test_plot.png",
         hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt",
-        x_range=(40, 50),
+        # x_range=(40, 50),
     )
