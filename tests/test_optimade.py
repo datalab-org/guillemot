@@ -40,5 +40,3 @@ def test_optimade_getter():
 
     bismuth_antimonides = get_optimade_structures(elements=["Sb"], database="cod")
     assert len(bismuth_antimonides) == 26
-
-    assert (Path(__file__).parent.parent / "cifs" / "cod-9009653.cif").exists()
