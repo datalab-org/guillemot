@@ -76,24 +76,6 @@ class ConversationHistory:
 # Initialize conversation history
 conversation_history = ConversationHistory(messages=[])
 
-
-def is_image_url(text: str) -> bool:
-    """Check if text contains an image URL"""
-    url_pattern = r"https?://[^\s]+\.(jpg|jpeg|png|gif|bmp|webp)"
-    return bool(re.search(url_pattern, text, re.IGNORECASE))
-
-
-def extract_image_url(text: str) -> tuple[str, str]:
-    """Extract image URL from text and return (text_without_url, image_url)"""
-    url_pattern = r"https?://[^\s]+\.(jpg|jpeg|png|gif|bmp|webp)"
-    match = re.search(url_pattern, text, re.IGNORECASE)
-    if match:
-        image_url = match.group()
-        text_without_url = text.replace(image_url, "").strip()
-        return text_without_url, image_url
-    return text, ""
-
-
 def is_local_image_path(text: str) -> bool:
     """Check if text contains a local image file path"""
     # Look for file:// URLs or local paths ending with image extensions
@@ -209,19 +191,8 @@ async def chat_loop():
             has_image = False
             message_parts = []
 
-            # Check for image URL
-            if is_image_url(user_input):
-                text_without_url, image_url = extract_image_url(user_input)
-                if text_without_url:
-                    message_parts.append(text_without_url)
-                else:
-                    message_parts.append("Please analyze this image:")
-                message_parts.append(ImageUrl(url=image_url))
-                has_image = True
-                print(f"🖼️  Loading image from URL: {image_url}")
-
             # Check for local image path
-            elif is_local_image_path(user_input):
+            if is_local_image_path(user_input):
                 text_without_path, image_path = extract_local_image_path(user_input)
                 image_content = load_local_image(image_path)
 

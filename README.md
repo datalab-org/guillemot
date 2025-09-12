@@ -29,87 +29,19 @@ Run the chat application:
 uv run guillemot
 ```
 
-### Available Commands
+### Functionality
 
-- **Chat normally**: Just type your message and press Enter
-- **Image analysis**: Include image URLs or local file paths in your message
-  - `"Describe this image: https://example.com/photo.jpg"`
-  - `"What's in this picture? /path/to/local/image.png"`
-- **`history`**: View recent conversation history (🖼️ indicates messages with images)
-- **`clear`**: Clear conversation history
-- **`quit`**, **`exit`**, or **`bye`**: Exit the application
+ Given experimental X-ray diffraction data, guillemot will set up and run TOPAS refinements using a natural-language interface. Guillemot uses multimodal image input to inspect refinement outputs, and has tools for retrieving structural information from OPTIMADE providers and outputting refinement plots to images.
 
-### Tool Usage
+### Key Tools
 
+- Local file paths automatically parsed as multimodal input (used by agent to read refinement plots)
 - `save_topas_inp` — Create and save a TOPAS .inp refinement input file; returns the path to the generated .inp.
 - `run_topas_refinement` — Run a TOPAS refinement using a provided .inp and diffraction data; returns paths to result files and logs.
 - `get_optimade_cifs` — Query OPTIMADE providers for crystal structures and save CIFs locally; returns downloaded file paths and basic metadata.
-
-### Image Analysis
-
-The app parses image input from URLs or local files. Usage examples:
-
-**Analyze images from URLs:**
-```
-Describe this logo: https://example.com/logo.png
-What colors are in this image? https://example.com/photo.jpg
-```
-
-**Analyze local image files:**
-```
-What's in this photo? /Users/username/Pictures/vacation.jpg
-Analyze this screenshot: ./screenshot.png
-```
-
-**Supported formats:** JPG, JPEG, PNG, GIF, BMP, WebP
-
-The AI can describe images, identify objects, read text in images, analyze colors, and answer questions about image content.
-
-## Architecture
-
-### Core Components
-
-- **ConversationHistory**: Manages chat memory and context with image tracking
-- **Agent**: pydantic-ai agent with tool support and multimodal capabilities
-- **Image Processing**: URL and local file image loading with multiple format support
-- **Interactive Loop**: Clean terminal-based chat experience
-
-### Memory System
-
-The conversation history is maintained in memory and provides context to the AI:
-- Stores user and assistant messages with timestamps
-- Formats recent messages for AI context
-- Configurable history limits
-
-## Extending the Application
-
-### Adding New Tools
-
-1. Create a new tool in a python file in `src/guillemot/tools/`
-
-2. Add it to the agent:
-   ```python
-
-   agent = Agent(
-       # ...
-       tools=[tool_1, tool_2],
-       # ...
-   )
-   ```
-
-### Customizing the AI Behavior
-
-Modify the `system_prompt` in the `create_agent()` function to change how the AI behaves.
-
-### Persisting Conversation History
-
-Currently, history is stored in memory. To persist across sessions, modify the `ConversationHistory` class to save/load from a file or database.
-
-## Dependencies
-
-- `pydantic-ai`: LLM framework with structured outputs and tool support
-- `python-dotenv`: Environment variable management
-- `logfire`: Logging and observability (optional)
+- `print_structure` — Produce a concise human-readable summary of a single structure (CIF or Structure object) for quick inspection.
+- `print_structures` — Summarize multiple structures in a compact tabular/list form with basic metadata (index, formula, volume, source).
+- `plot_refinement_results` — Plot observed vs calculated pattern and residuals, optionally annotate HKL ticks, save PNG, and return the image filepath and binary content.
 
 ## License
 
