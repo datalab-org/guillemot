@@ -32,16 +32,15 @@ def _sanitize_formula(formula: str) -> str:
     return sorted_formula
 
 
-def get_optimade_cifs(
+def get_optimade_structures(
     elements: list[str] | None = None,
     formula: str | None = None,
     query: str | None = None,
     database: Literal["cod", "mp"] = "cod",
 ) -> list[dict]:
     """
-    Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases
-    and save all cif files in the `./cifs` directory, named by database ID and entry ID, e.g.,
-    `mp-1234.cif` or `cod-1234567.cif`.
+    Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases.
+    Results will be returned as a list which can be printed or processed further.
 
     Parameters:
         elements: A list of element symbols to query for, e.g., ["Li", "C", "O"].
@@ -55,7 +54,7 @@ def get_optimade_cifs(
             "mp" (Materials Project), or "oqmd" (Open Quantum Materials Database).
 
     Returns:
-        A list of optimade Structure objects.
+        A list of optimade structures as dicts to be printed using the `print_structures` tool.
 
     """
 
@@ -66,7 +65,7 @@ def get_optimade_cifs(
     }
 
     if database not in allowed_database_endpoints:
-        raise RuntimeError(
+        raise ModelRetry(
             f"Unknown database {database!r}. Must be one of 'cod', 'mp', or 'oqmd'."
         )
 
@@ -78,7 +77,7 @@ def get_optimade_cifs(
 
     elif elements:
         if not isinstance(elements, list):
-            raise RuntimeError(
+            raise ModelRetry(
                 f"`elements` must be a list of element symbols, not {type(elements)}."
             )
 
@@ -91,7 +90,7 @@ def get_optimade_cifs(
         _filter = f'chemical_formula_reduced="{formula}"'
 
     else:
-        raise RuntimeError("Must provide either `elements` or `formula` or `query`.")
+        raise ModelRetry("Must provide either `elements` or `formula` or `query`.")
 
     # response fields required to make a CIF
     response_fields = [
@@ -115,7 +114,7 @@ def get_optimade_cifs(
     raw_structures = results["structures"][_filter][endpoint]["data"]
 
     if not raw_structures:
-        raise RuntimeError(
+        raise ModelRetry(
             f"No structures found for {elements=}, {formula=} in {database=}."
         )
 
@@ -126,7 +125,7 @@ def get_optimade_cifs(
     return [Structure(d).as_dict for d in raw_structures]
 
 def print_structures(structures: list[dict]) -> str:
-    """Prints the structure query results.
+    """Prints the structure query results as passed.
 
     Parameters:
         structures: A list of optimade Structure objects.
@@ -147,9 +146,7 @@ def print_structures(structures: list[dict]) -> str:
     table.add_column("Disordered?")
 
     for ind, s in enumerate(structures):
-
         s = Structure(s).as_pmg
-
 
         try:
             spacegroup = s.get_symmetry_dataset()["international"]
