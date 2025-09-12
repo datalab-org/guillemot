@@ -1,15 +1,14 @@
 import asyncio
 import os
+import re
 from dataclasses import dataclass
-from typing import List, Dict, Any, Union
 from datetime import datetime
 from pathlib import Path
-import re
+from typing import Any, Dict, List
 
-from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext, ImageUrl, BinaryContent
 from dotenv import load_dotenv
-
+from pydantic_ai import Agent, BinaryContent, ImageUrl
+from tools import run_topas_refinement, save_topas_inp
 
 # Load environment variables
 load_dotenv()
@@ -138,31 +137,35 @@ def dummy_tool(query: str) -> str:
     """
     return f"🔧 Dummy tool activated! Received query: '{query}'. This is a test response generated at {datetime.now().strftime('%H:%M:%S')}."
 
-
 # Set up the pydantic-ai agent
 def create_agent() -> Agent:
     """Create and configure the pydantic-ai agent"""
     
     # Get model and API key from environment
-    model_name = os.getenv("AI_MODEL", "gemini-2.5-flash-lite")
+    model_name = os.getenv("GUILLEMOT_AI_MODEL", "gemini-2.5-flash-lite")
     api_key = os.getenv("GEMINI_API_KEY")
     
     if not api_key:
         raise ValueError("GEMINI_API_KEY not found in environment variables")
-    
+
+    with open("example_refinement_NaCoO2.inp",'r') as f:
+        topas_example = f.read()
+
     # Create the agent with the dummy tool
     agent = Agent(
         model_name,
-        system_prompt="""You are a helpful AI assistant with memory of our conversation and access to tools.
-        
-        You have access to a dummy tool that you can use when the user asks for information that might require external data.
-        
-        You can also analyze and understand images that users share with you. When users provide images, describe what you see and answer any questions about the image content.
-        
-        Remember our conversation history and refer to it when relevant. Be conversational and helpful.
-        
-        When using tools, explain what you're doing and why.""",
-        tools=[dummy_tool],
+        system_prompt=f"""You are an agent responsible for performing Rietveld refinements using
+ the topas-academic program. You have access to a tool to write topas .inp files to a run directory,
+ and a tool to run the refinement and get the results. You perform Rietveld refinements the way 
+ human researchers do: looking at an X-ray diffraction pattern, deciding which phases are most likely
+to be present based on the pattern, then trying some basic refinements and looking at the results before
+iterating to get the fit as good as possible.
+You can also analyze and understand images that users share with you. Use this to look at images of Rietveld
+refinements and plan your next refinement.
+
+Here is an example of a topas input file for refinement of a sample of NaCoO2: {topas_example} 
+    """,
+        tools=[save_topas_inp, run_topas_refinement],
         instrument=True
     )
     
