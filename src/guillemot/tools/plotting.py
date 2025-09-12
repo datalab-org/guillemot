@@ -1,11 +1,12 @@
+from pathlib import Path
 from typing import Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
-from pydantic import BaseModel
-from pydantic_ai import BinaryContent
 from guillemot.utils import load_local_image
+from pydantic import BaseModel, field_serializer
+from pydantic_ai import BinaryContent
 
 matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
 
@@ -13,6 +14,14 @@ matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
 class PlotResultsOutput(BaseModel):
     output_filepath: str
     output_image: BinaryContent
+
+    @field_serializer("output_image")
+    def serialize_binarycontent(self, bc: BinaryContent) -> dict:
+        return {
+            "data": base64.b64encode(bc.data).decode("ascii"),
+            "media_type": bc.media_type,
+        }
+
 
 
 def plot_refinement_results(
@@ -139,10 +148,47 @@ def plot_refinement_results(
     plt.savefig(save_path, dpi=100, bbox_inches="tight")
     plt.close(fig)  # ensure no GUI resources are kept
 
-    return PlotResultsOutput(
+    out = PlotResultsOutput(
         output_filepath=save_path, output_image=load_local_image(save_path)
     )
 
+    return out
+
+
+
+
+def load_local_image(image_path: str) -> BinaryContent | None:
+    """Load a local image file and return BinaryContent"""
+    try:
+        path = Path(image_path)
+        if not path.exists():
+            print(f"❌ Image file not found: {image_path}")
+            return None
+
+        if not path.is_file():
+            print(f"❌ Path is not a file: {image_path}")
+            return None
+
+        # Determine media type based on file extension
+        extension = path.suffix.lower()
+        media_type_map = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".bmp": "image/bmp",
+            ".webp": "image/webp",
+        }
+
+        media_type = media_type_map.get(extension, "image/jpeg")
+
+        # Read the image data
+        image_data = path.read_bytes()
+        return BinaryContent(data=image_data, media_type=media_type)
+
+    except Exception as e:
+        print(f"❌ Error loading image: {e}")
+        return None
 
 # Example usage:
 if __name__ == "__main__":
