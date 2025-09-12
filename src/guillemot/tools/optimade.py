@@ -117,9 +117,9 @@ def get_optimade_cifs(
         f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}"
     )
 
-    return [Structure(d) for d in raw_structures]
+    return [Structure(d).as_dict for d in raw_structures]
 
-def print_structures(structures: list[Structure]) -> str:
+def print_structures(structures: list[dict]) -> str:
     """Prints the structure query results.
 
     Parameters:
@@ -140,16 +140,18 @@ def print_structures(structures: list[Structure]) -> str:
     table.add_column("γ (°)", justify="right")
     table.add_column("Disordered?")
 
-    for ind, s in enumerate(pmg_structures):
+    for ind, s in enumerate(structures):
+
+        s = Structure(s).as_pmg
+
+
         try:
             spacegroup = s.get_symmetry_dataset()["international"]
         except Exception:
             spacegroup = None
 
-        structures[ind].entry.attributes.space_group_symbol_hermann_mauguin = spacegroup
-
         table.add_row(
-            structures[ind].entry.id,
+            structures[ind]["id"],
             s.reduced_formula.translate(str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")),
             spacegroup,
             f"{s.lattice.a:.1f}",
@@ -158,14 +160,14 @@ def print_structures(structures: list[Structure]) -> str:
             f"{s.lattice.alpha:.0f}",
             f"{s.lattice.beta:.0f}",
             f"{s.lattice.gamma:.0f}",
-            "Yes" if "disorder" in structures[ind].entry.attributes.structure_features else "No",
+            "Yes" if "disorder" in structures[ind]["attributes"]["structure_features"] else "No",
         )
 
     console.print(table)
 
     return str(table)
 
-def print_structure(structure: Structure) -> str:
+def print_structure(structure: dict) -> str:
     """Focus in on a single structure and print the lattice, atom positions and space group to
     be used when creating a topas input.
 
@@ -173,7 +175,7 @@ def print_structure(structure: Structure) -> str:
         structure: An optimade Structure object.
 
     """
-    pmg = structure.as_pmg
+    pmg = Structure(structure).as_pmg
     print(pmg)
     return str(pmg)
 
