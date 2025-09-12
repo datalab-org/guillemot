@@ -19,7 +19,7 @@ def plot_refinement_results(
     output_file: str,
     save_path: str,
     hkl_file: Optional[str] = None,
-    x_range: Optional[tuple[float, float]] = None,
+    x_range: list[float] | None = None,
 ) -> PlotResultsOutput:
     """
     A tool that plots the results of a TOPAS refinement from the refinement output file and generates a PNG image.
