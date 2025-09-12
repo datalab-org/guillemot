@@ -1,14 +1,12 @@
 import os
+import pathlib
 import subprocess
 from os.path import join
 from typing import Optional
-import pathlib
 
+from guillemot.tools.plotting import PlotResultsOutput, plot_refinement_results
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
-
-from guillemot.tools.plotting import plot_refinement_results
-from guillemot.tools.plotting import PlotResultsOutput, plot_refinement_results
 
 RUN_DIR = "run_dir"
 
@@ -99,7 +97,7 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
     # Only plot if the result file exists
     if refinement_result_path is not None:
         save_path = refinement_result_path.replace("_output.txt", "_plot.png")
-        plot_refinement_results(
+        plot_results = plot_refinement_results(
             output_file=refinement_result_path,
             save_path=save_path,
             hkl_file=hkl_file
@@ -115,4 +113,5 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
         refinement_result_path=refinement_result_path,
         stdout=result.stdout,
         stderr=result.stderr,
+        plot_results=plot_results,
     )
