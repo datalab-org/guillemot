@@ -76,6 +76,7 @@ class ConversationHistory:
 # Initialize conversation history
 conversation_history = ConversationHistory(messages=[])
 
+
 def is_local_image_path(text: str) -> bool:
     """Check if text contains a local image file path"""
     # Look for file:// URLs or local paths ending with image extensions
