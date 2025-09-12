@@ -35,6 +35,7 @@ def _sanitize_formula(formula: str) -> str:
 def get_optimade_cifs(
     elements: list[str] | None = None,
     formula: str | None = None,
+    query: str | None = None,
     database: Literal["cod", "mp"] = "cod",
 ) -> list[dict]:
     """
@@ -48,6 +49,8 @@ def get_optimade_cifs(
             or equivalently ?filter=elements HAS ALL "Li", "C", "O" AND elements LENGTH 3.
         formula: A chemical formula to query for, e.g., "LiFePO4". If provided, this takes precedence over `elements`, will
             be sanitized (elements sorted alphabetically, e.g., "FeLiO4P"), and an exact match will be performed.
+        query: A raw OPTIMADE query, that will take precedence. These can be more expressive and used to e.g., search for a different
+            number of elements, or to add additional constraints.
         database: The database to query, one of "cod" (Crystallography Open Database),
             "mp" (Materials Project), or "oqmd" (Open Quantum Materials Database).
 
@@ -70,7 +73,10 @@ def get_optimade_cifs(
     endpoint = allowed_database_endpoints[database]
     client = OptimadeClient(endpoint)
 
-    if elements:
+    if query:
+        _filter = query
+
+    elif elements:
         if not isinstance(elements, list):
             raise RuntimeError(
                 f"`elements` must be a list of element symbols, not {type(elements)}."
@@ -85,7 +91,7 @@ def get_optimade_cifs(
         _filter = f'chemical_formula_reduced="{formula}"'
 
     else:
-        raise RuntimeError("Must provide either `elements` or `formula`.")
+        raise RuntimeError("Must provide either `elements` or `formula` or `query`.")
 
     # response fields required to make a CIF
     response_fields = [
