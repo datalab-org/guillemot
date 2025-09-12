@@ -40,10 +40,15 @@ def get_optimade_cifs(
 
     results = client.get(_filter)
 
+    raw_structures = results["structures"][_filter][endpoint]["data"]
+
+    if not raw_structures:
+        raise RuntimeError(
+            f"No structures found for {elements=} in {database=}."
+        )
+
     structures = [
-        Structure(d) for d in results["structures"][_filter][endpoint]["data"]
+        Structure(d) for d in raw_structures
     ]
 
     return [struct.as_cif for struct in structures]
-
-
