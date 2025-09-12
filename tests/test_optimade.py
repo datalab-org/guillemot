@@ -1,3 +1,4 @@
+from pathlib import Path
 from guillemot.tools import get_optimade_cifs
 from guillemot.tools.optimade import _create_optimade_elements_filter, _sanitize_formula
 
@@ -39,3 +40,5 @@ def test_optimade_getter():
 
     bismuth_antimonides = get_optimade_cifs(elements=["Sb"], database="cod")
     assert len(bismuth_antimonides) == 26
+
+    assert (Path(__file__).parent.parent / "cifs" / "cod-9009653.cif").exists()
