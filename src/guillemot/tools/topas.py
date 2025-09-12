@@ -3,6 +3,7 @@ import subprocess
 from os.path import join
 from typing import Optional
 from guillemot.tools.plotting import plot_refinement_results
+import pathlib
 
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
@@ -24,6 +25,10 @@ def save_topas_inp(filename: str, inp_text: str) -> SaveInpResult:
     Each str block should also have:
     Out_CIF_STR("<filename>_<phase_name>.cif"). Note that the input filename (without ".inp")
     should prefix the phase name.
+
+    Blocks are only defined by whitespace and do not need closing tags.
+
+    The input pattern can be assumed to be in the same directory that TOPAS runs from and in the same dir as input file is.
     """
     basename = os.path.splitext(filename)[0]
 
@@ -70,9 +75,13 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
     except subprocess.TimeoutExpired:
         status = "timeout"
 
-    outfile_path = inp_path.replace(".inp", ".out")
+    if status == "failure":
+        raise ModelRetry(f"TOPAS perhaps returned an error. stdout: {result.stdout}, {result.stderr}")
+
+    outfile_path = pathlib.Path(inp_path.replace(".inp", ".out"))
     with open(outfile_path) as f:
         outfile_contents = f.read()
+    outfile_path = str(outfile_path)
 
 
     refinement_result_path = inp_path.replace(".inp", "_output.txt")
