@@ -2,6 +2,7 @@ import os
 import subprocess
 from os.path import join
 from typing import Optional
+from guillemot.tools.plotting import plot_refinement_results
 
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
@@ -73,7 +74,24 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
     with open(outfile_path) as f:
         outfile_contents = f.read()
 
+
     refinement_result_path = inp_path.replace(".inp", "_output.txt")
+    # Check if the refinement result file exists
+    if not os.path.isfile(refinement_result_path):
+        refinement_result_path = None
+
+    hkl_file = inp_path.replace(".inp", "_hkl.txt")
+    if not os.path.isfile(hkl_file):
+        hkl_file = None
+
+    # Only plot if the result file exists
+    if refinement_result_path is not None:
+        save_path = refinement_result_path.replace("_output.txt", "_plot.png")
+        plot_refinement_results(
+            output_file=refinement_result_path,
+            save_path=save_path,
+            hkl_file=hkl_file
+        )
 
     # todo: add tail of log file located at \Science\Topas-7\topas.log
     # todo: make graph of result

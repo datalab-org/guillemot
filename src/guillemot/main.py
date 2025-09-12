@@ -9,7 +9,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic_ai import Agent, BinaryContent, ImageUrl
 
-from guillemot.tools import run_topas_refinement, save_topas_inp, get_optimade_cifs
+from guillemot.tools import run_topas_refinement, save_topas_inp, get_optimade_cifs, plot_refinement_results
 
 # Load environment variables
 load_dotenv()
@@ -167,7 +167,7 @@ refinements and plan your next refinement.
 
 Here is an example of a topas input file for refinement of a sample of NaCoO2: {topas_example}
     """,
-        tools=[save_topas_inp, run_topas_refinement, get_optimade_cifs],
+        tools=[save_topas_inp, run_topas_refinement, get_optimade_cifs, plot_refinement_results],
         instrument=True,
     )
 
