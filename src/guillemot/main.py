@@ -131,6 +131,8 @@ to be present based on the pattern, then trying some basic refinements and looki
 iterating to get the fit as good as possible.
 You can also analyze and understand images that users share with you. Use this to look at images of Rietveld
 refinements and plan your next refinement.
+Give a summary of what you've done at the end, telling each refinement you did, explaining any errors you found, 
+and explaining why you made changes before the next refinement.
 
 Here is an example of a topas input file for refinement of a sample of NaCoO2: {topas_example}
     """,
