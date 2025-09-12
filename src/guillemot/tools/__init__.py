@@ -4,7 +4,7 @@ from .topas import (
     RunRefinementResult,
     SaveInpResult,
 )
-from .optimade import get_optimade_cifs
+from .optimade import get_optimade_cifs, print_structure, print_structures
 from .plotting import plot_refinement_results
 
 __all__ = (
@@ -13,4 +13,6 @@ __all__ = (
     "RunRefinementResult",
     "SaveInpResult",
     "get_optimade_cifs",
+    "print_structure",
+    "print_structures",
 )

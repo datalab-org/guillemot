@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 from guillemot.tools import (
     get_optimade_cifs,
+    print_structure, print_structures,
     plot_refinement_results,
     run_topas_refinement,
     save_topas_inp,
@@ -147,6 +148,8 @@ Here is an example of a topas input file for refinement of a sample of NaCoO2: {
             save_topas_inp,
             run_topas_refinement,
             get_optimade_cifs,
+            print_structure,
+            print_structures,
             plot_refinement_results,
         ],
         instrument=True,

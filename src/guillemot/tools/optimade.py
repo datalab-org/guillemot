@@ -51,6 +51,9 @@ def get_optimade_cifs(
         database: The database to query, one of "cod" (Crystallography Open Database),
             "mp" (Materials Project), or "oqmd" (Open Quantum Materials Database).
 
+    Returns:
+        A list of optimade Structure objects.
+
     """
 
     allowed_database_endpoints = {
@@ -114,10 +117,16 @@ def get_optimade_cifs(
         f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}"
     )
 
-    structures = [Structure(d) for d in raw_structures]
-    pmg_structures = [struct.as_pymatgen for struct in structures]
+    return [Structure(d) for d in raw_structures]
 
-    table = Table(title=f"OPTIMADE Query Results {elements=}, {formula=}, {database=}")
+def print_structures(structures: list[Structure]) -> str:
+    """Prints the structure query results.
+
+    Parameters:
+        structures: A list of optimade Structure objects.
+
+    """
+    table = Table(title="OPTIMADE Structures")
     console = Console()
 
     table.add_column("#")
@@ -154,13 +163,17 @@ def get_optimade_cifs(
 
     console.print(table)
 
+    return str(table)
 
-    for s in structures:
-        _id = s.entry.id
-        if not _id.startswith(database):
-            _id = f"{database}-{_id}"
+def print_structure(structure: Structure) -> str:
+    """Focus in on a single structure and print the lattice, atom positions and space group to
+    be used when creating a topas input.
 
-        with open(Path("cifs") / f"{_id}.cif", "w") as f:
-            f.write(s.as_cif)
+    Paramters:
+        structure: An optimade Structure object.
 
-    return [s.as_dict for s in structures]
+    """
+    pmg = structure.as_pmg
+    print(pmg)
+    return str(pmg)
+
