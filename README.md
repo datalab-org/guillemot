@@ -41,13 +41,13 @@ uv run guillemot
 
 ### Tool Usage
 
-Currently includes a dummy tool as a placeholder. Responds to:
-- "Can you use a tool to get some data?"
-- "Please call the dummy tool with 'test query'"
+- `save_topas_inp` — Create and save a TOPAS .inp refinement input file; returns the path to the generated .inp.
+- `run_topas_refinement` — Run a TOPAS refinement using a provided .inp and diffraction data; returns paths to result files and logs.
+- `get_optimade_cifs` — Query OPTIMADE providers for crystal structures and save CIFs locally; returns downloaded file paths and basic metadata.
 
 ### Image Analysis
 
-The app supports multimodal image input. You can:
+The app parses image input from URLs or local files. Usage examples:
 
 **Analyze images from URLs:**
 ```
@@ -74,22 +74,6 @@ The AI can describe images, identify objects, read text in images, analyze color
 - **Image Processing**: URL and local file image loading with multiple format support
 - **Interactive Loop**: Clean terminal-based chat experience
 
-### Tool System
-
-The dummy tool demonstrates how to integrate external functionality:
-
-```python
-def dummy_tool(query: str) -> DummyToolResult:
-    """Example tool that returns structured data"""
-    return DummyToolResult(
-        result="This is a dummy response! The tool is working correctly.",
-        timestamp=datetime.now().isoformat(),
-        input_received=query
-    )
-```
-
-To add real tools, replace or extend this function with actual API calls, database queries, or other external services.
-
 ### Memory System
 
 The conversation history is maintained in memory and provides context to the AI:
@@ -101,19 +85,15 @@ The conversation history is maintained in memory and provides context to the AI:
 
 ### Adding New Tools
 
-1. Create a new tool function:
-   ```python
-   def weather_tool(location: str) -> WeatherResult:
-       # Your tool implementation
-       pass
-   ```
+1. Create a new tool in a python file in `src/guillemot/tools/`
 
 2. Add it to the agent:
    ```python
+
    agent = Agent(
-       model_name,
-       tools=[dummy_tool, weather_tool],
-       # ... other config
+       # ...
+       tools=[tool_1, tool_2],
+       # ...
    )
    ```
 
