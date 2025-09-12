@@ -67,7 +67,7 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
     ax_resid.set_ylabel("Obs-Calc")
 
     plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.savefig(save_path, dpi=100, bbox_inches="tight")
     plt.close(fig)  # ensure no GUI resources are kept
 
     return PlotResultsOutput(output_filepath=save_path, output_image=load_local_image(save_path))
