@@ -14,7 +14,10 @@ class PlotResultsOutput(BaseModel):
     output_filepath: str
     output_image: BinaryContent
 
-def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional[str]=None) -> PlotResultsOutput:
+
+def plot_refinement_results(
+    output_file: str, save_path: str, hkl_file: Optional[str] = None
+) -> PlotResultsOutput:
     """
     A tool that plots the results of a TOPAS refinement from the refinement output file and generates a PNG image.
     Parameters:
@@ -43,7 +46,7 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
 
     # ---- Plot ----
     fig, (ax_main, ax_resid) = plt.subplots(
-        2, 1, sharex=True, gridspec_kw={"height_ratios": [3,1]}, figsize=(8,6)
+        2, 1, sharex=True, gridspec_kw={"height_ratios": [3, 1]}, figsize=(8, 6)
     )
 
     # Main pattern
@@ -53,9 +56,11 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
     if hkl_file is not None:
         # Reflection ticks
         ymin, ymax = ax_main.get_ylim()
-        tick_base = ymin + 0.0005*(ymax - ymin)
+        tick_base = ymin + 0.0005 * (ymax - ymin)
         for tt, inten in zip(two_theta, intensity):
-            ax_main.vlines(tt, tick_base, tick_base + inten*0.1*(ymax-ymin), color="b", lw=1)
+            ax_main.vlines(
+                tt, tick_base, tick_base + inten * 0.1 * (ymax - ymin), color="b", lw=1
+            )
 
     ax_main.set_ylabel("Intensity")
     ax_main.legend()
@@ -70,12 +75,15 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
     plt.savefig(save_path, dpi=100, bbox_inches="tight")
     plt.close(fig)  # ensure no GUI resources are kept
 
-    return PlotResultsOutput(output_filepath=save_path, output_image=load_local_image(save_path))
+    return PlotResultsOutput(
+        output_filepath=save_path, output_image=load_local_image(save_path)
+    )
+
 
 # Example usage:
 if __name__ == "__main__":
     plot_refinement_results(
-        output_file="examples/FeSb_19RBM/Runs/1/output.txt", 
+        output_file="examples/FeSb_19RBM/Runs/1/output.txt",
         save_path="test_plot.png",
-        hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt"
+        hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt",
     )

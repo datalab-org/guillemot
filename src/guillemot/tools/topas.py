@@ -10,6 +10,7 @@ from pydantic_ai.exceptions import ModelRetry
 
 RUN_DIR = "run_dir"
 
+
 class SaveInpResult(BaseModel):
     inp_path: str
     line_count: int
@@ -77,7 +78,9 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
         status = "timeout"
 
     if status == "failure":
-        raise ModelRetry(f"TOPAS perhaps returned an error. stdout: {result.stdout}, {result.stderr}")
+        raise ModelRetry(
+            f"TOPAS perhaps returned an error. stdout: {result.stdout}, {result.stderr}"
+        )
 
     outfile_path = pathlib.Path(inp_path.replace(".inp", ".out"))
     outfile_path = str(outfile_path)
@@ -88,7 +91,6 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
     else:
         outfile_contents = None
         outfile_path = None
-
 
     refinement_result_path = inp_path.replace(".inp", "_output.txt")
     # Check if the refinement result file exists
@@ -103,9 +105,7 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
     if refinement_result_path is not None:
         save_path = refinement_result_path.replace("_output.txt", "_plot.png")
         plot_results = plot_refinement_results(
-            output_file=refinement_result_path,
-            save_path=save_path,
-            hkl_file=hkl_file
+            output_file=refinement_result_path, save_path=save_path, hkl_file=hkl_file
         )
 
     # todo: add tail of log file located at \Science\Topas-7\topas.log
