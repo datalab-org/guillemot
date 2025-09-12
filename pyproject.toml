@@ -9,6 +9,8 @@ dependencies = [
     "pydantic-ai>=1.0.3",
     "python-dotenv>=1.1.1",
     "optimade[http-client,client]",
+    "matplotlib>=3.10.6",
+    "pandas>=2.3.2",
 ]
 
 [tool.uv]

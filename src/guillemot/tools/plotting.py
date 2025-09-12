@@ -1,8 +1,18 @@
+import matplotlib
+matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
 import matplotlib.pyplot as plt
 import pandas as pd
 from typing import Optional
 
 def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional[str]=None):
+    """
+    A tool that plots the results of a TOPAS refinement from the refinement output file and generates a PNG image.
+    Parameters:
+        output_file: Path to the TOPAS refinement output file (e.g., "output.txt").
+        save_path: Path to save the generated PNG image (e.g., "refinement_plot.png").
+        hkl_file: Optional path to the HKL file containing reflection data for tick marks (e.g., "hkl.txt").
+    """
+
     # ---- Load total pattern ----
     df = pd.read_csv(output_file, sep="\s+", header=None)
     x, yobs, ycalc = df[0], df[1], df[2]
@@ -47,12 +57,13 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
     ax_resid.set_ylabel("Obs-Calc")
 
     plt.tight_layout()
-    
-    plt.savefig(save_path)
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)  # ensure no GUI resources are kept
 
 # Example usage:
-plot_refinement_results(
-    output_file="examples/FeSb_19RBM/Runs/1/output.txt", 
-    save_path="examples/FeSb_19RBM/Runs/1/plot",
-    hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt"
-)
+if __name__ == "__main__":
+    plot_refinement_results(
+        output_file="examples/FeSb_19RBM/Runs/1/output.txt", 
+        save_path="test_plot.png",
+        hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt"
+    )
