@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from guillemot.tools import (get_optimade_cifs, plot_refinement_results,
                              run_topas_refinement, save_topas_inp)
 from pydantic_ai import Agent, BinaryContent, ImageUrl
-from utils import load_local_image
+from guillemot.utils import load_local_image
 
 # Load environment variables
 load_dotenv()
