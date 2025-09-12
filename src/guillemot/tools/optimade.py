@@ -81,7 +81,7 @@ def get_optimade_cifs(
     else:
         raise RuntimeError("Must provide either `elements` or `formula`.")
 
-    results = client.get(_filter, response_fields=["elements", "structure_features", "nsites", "species_at_sites", "cartesian_site_positions", "last_modified"])
+    results = client.get(_filter, response_fields=["elements", "structure_features", "nsites", "species_at_sites", "species", "cartesian_site_positions", "last_modified", "lattice_vectors", "nperiodic_dimensions", "dimension_types"])
 
     raw_structures = results["structures"][_filter][endpoint]["data"]
 
@@ -107,7 +107,10 @@ def get_optimade_cifs(
     table.add_column("γ (°)", justify="right")
 
     for ind, s in enumerate(pmg_structures):
-        spacegroup = s.get_symmetry_dataset()["international"]
+        try:
+            spacegroup = s.get_symmetry_dataset()["international"]
+        except Exception:
+            spacegroup = "Unknown"
         table.add_row(
             str(ind),
             s.reduced_formula.translate(str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")),
