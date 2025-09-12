@@ -15,6 +15,7 @@ from guillemot.tools import (
     run_topas_refinement,
     save_topas_inp,
 )
+from guillemot.tools.datalab import get_sample, get_samples, list_data_files
 from pydantic_ai import Agent, BinaryContent, ImageUrl
 from guillemot.utils import load_local_image
 
@@ -153,6 +154,9 @@ Here is an example of a topas input file for refinement of a sample of NaCoO2: {
             print_structure,
             print_structures,
             plot_refinement_results,
+            get_samples,
+            get_sample,
+            list_data_files,
         ],
         instrument=True,
         retries=5,
