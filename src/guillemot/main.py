@@ -161,7 +161,7 @@ def create_agent() -> Agent:
     if not api_key:
         raise ValueError("GEMINI_API_KEY not found in environment variables")
 
-    with open("examples/example_refinement_NaCoO2.inp", "r") as f:
+    with open("examples/NaCoO2/example_refinement_NaCoO2.inp", "r") as f:
         topas_example = f.read()
 
     # Create the agent with the dummy tool
