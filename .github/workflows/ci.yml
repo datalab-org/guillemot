@@ -29,12 +29,10 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        working-directory: ./pydatalab
         run: |
           uv sync --locked --all-extras --dev
 
       - name: Run pre-commit
-        working-directory: ./pydatalab
         run: |
           uv run pre-commit run --all-files --show-diff-on-failure
 
