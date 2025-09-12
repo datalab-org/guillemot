@@ -1,15 +1,13 @@
 import asyncio
 import os
+import re
 from dataclasses import dataclass
-from typing import List, Dict, Any, Union
 from datetime import datetime
 from pathlib import Path
-import re
+from typing import Any, Dict, List
 
-from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext, ImageUrl, BinaryContent
 from dotenv import load_dotenv
-
+from pydantic_ai import Agent, BinaryContent, ImageUrl
 
 # Load environment variables
 load_dotenv()
