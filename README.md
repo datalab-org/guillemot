@@ -1,6 +1,6 @@
 <div align="center"> 
 
-# *guillemot*
+# *guiLLeMot*
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/f979aa22-6c39-4986-861b-53e37b486642" />
 
