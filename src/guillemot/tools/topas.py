@@ -80,9 +80,14 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
         raise ModelRetry(f"TOPAS perhaps returned an error. stdout: {result.stdout}, {result.stderr}")
 
     outfile_path = pathlib.Path(inp_path.replace(".inp", ".out"))
-    with open(outfile_path) as f:
-        outfile_contents = f.read()
     outfile_path = str(outfile_path)
+
+    if os.path.isfile(outfile_path):
+        with open(outfile_path) as f:
+            outfile_contents = f.read()
+    else:
+        outfile_contents = None
+        outfile_path = None
 
 
     refinement_result_path = inp_path.replace(".inp", "_output.txt")
