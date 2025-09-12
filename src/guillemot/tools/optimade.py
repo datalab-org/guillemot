@@ -7,6 +7,7 @@ from pydantic_ai import ModelRetry
 from rich.table import Table
 from rich.console import Console
 
+
 def _create_optimade_elements_filter(elements: list[str]) -> str:
     """Creates an OPTIMADE filter string for an exclusive list of elements."""
 
@@ -81,14 +82,32 @@ def get_optimade_cifs(
     else:
         raise RuntimeError("Must provide either `elements` or `formula`.")
 
-    results = client.get(_filter, response_fields=["elements", "structure_features", "nsites", "species_at_sites", "species", "cartesian_site_positions", "last_modified", "lattice_vectors", "nperiodic_dimensions", "dimension_types"])
+    results = client.get(
+        _filter,
+        response_fields=[
+            "elements",
+            "structure_features",
+            "nsites",
+            "species_at_sites",
+            "species",
+            "cartesian_site_positions",
+            "last_modified",
+            "lattice_vectors",
+            "nperiodic_dimensions",
+            "dimension_types",
+        ],
+    )
 
     raw_structures = results["structures"][_filter][endpoint]["data"]
 
     if not raw_structures:
-        raise RuntimeError(f"No structures found for {elements=}, {formula=} in {database=}.")
+        raise RuntimeError(
+            f"No structures found for {elements=}, {formula=} in {database=}."
+        )
 
-    print(f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}")
+    print(
+        f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}"
+    )
 
     structures = [Structure(d) for d in raw_structures]
     pmg_structures = [struct.as_pymatgen for struct in structures]

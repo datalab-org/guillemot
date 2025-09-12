@@ -7,8 +7,12 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
-from guillemot.tools import (get_optimade_cifs, plot_refinement_results,
-                             run_topas_refinement, save_topas_inp)
+from guillemot.tools import (
+    get_optimade_cifs,
+    plot_refinement_results,
+    run_topas_refinement,
+    save_topas_inp,
+)
 from pydantic_ai import Agent, BinaryContent, ImageUrl
 from guillemot.utils import load_local_image
 
@@ -106,6 +110,7 @@ def extract_local_image_path(text: str) -> tuple[str, str]:
         return text_without_path, image_path
     return text, ""
 
+
 # Set up the pydantic-ai agent
 def create_agent() -> Agent:
     """Create and configure the pydantic-ai agent"""
@@ -131,12 +136,17 @@ to be present based on the pattern, then trying some basic refinements and looki
 iterating to get the fit as good as possible.
 You can also analyze and understand images that users share with you. Use this to look at images of Rietveld
 refinements and plan your next refinement.
-Give a summary of what you've done at the end, telling each refinement you did, explaining any errors you found, 
+Give a summary of what you've done at the end, telling each refinement you did, explaining any errors you found,
 and explaining why you made changes before the next refinement.
 
 Here is an example of a topas input file for refinement of a sample of NaCoO2: {topas_example}
     """,
-        tools=[save_topas_inp, run_topas_refinement, get_optimade_cifs, plot_refinement_results],
+        tools=[
+            save_topas_inp,
+            run_topas_refinement,
+            get_optimade_cifs,
+            plot_refinement_results,
+        ],
         instrument=True,
         retries=5,
     )

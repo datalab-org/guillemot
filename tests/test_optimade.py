@@ -38,4 +38,4 @@ def test_optimade_getter():
     assert len(sodium_cobalt_oxies) == 9
 
     bismuth_antimonides = get_optimade_cifs(elements=["Sb"], database="cod")
-    assert len(bismuth_antimonides) == 2
+    assert len(bismuth_antimonides) == 26
