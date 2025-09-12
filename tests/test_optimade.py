@@ -1,17 +1,38 @@
+from guillemot.tools import get_optimade_cifs
+from guillemot.tools.optimade import _create_optimade_elements_filter, _sanitize_formula
 
-def test_optimade_getter():
-    from guillemot.tools import get_optimade_cifs
-    from guillemot.tools.optimade import _create_optimade_filter
 
-    # Check filter creator directly
-    assert _create_optimade_filter(["Sb"]) == 'elements HAS "Sb" AND elements LENGTH 1'
-    assert _create_optimade_filter(["Sb", "S"]) == 'elements HAS ALL "Sb","S" AND elements LENGTH 2'
+def test_elements_filter():
+    assert (
+        _create_optimade_elements_filter(["Sb"])
+        == 'elements HAS "Sb" AND elements LENGTH 1'
+    )
+    assert (
+        _create_optimade_elements_filter(["Sb", "S"])
+        == 'elements HAS ALL "Sb","S" AND elements LENGTH 2'
+    )
 
     # no validation of elements is done, so this works too:
-    assert _create_optimade_filter(["Sb", "X", "Y"]) == 'elements HAS ALL "Sb","X","Y" AND elements LENGTH 3'
+    assert (
+        _create_optimade_elements_filter(["Sb", "X", "Y"])
+        == 'elements HAS ALL "Sb","X","Y" AND elements LENGTH 3'
+    )
 
+
+def test_sanitize_formula():
+    assert _sanitize_formula("NaCoO2") == "CoNaO2"
+    assert _sanitize_formula("Na1Co1O2") == "CoNaO2"
+
+
+def test_optimade_getter():
     antimony = get_optimade_cifs(["Sb"], "mp")
     assert len(antimony) == 14
 
-    bismuth_antimonides = get_optimade_cifs(["Bi", "Sb"], "mp")
+    bismuth_antimonides = get_optimade_cifs(elements=["Bi", "Sb"])
     assert len(bismuth_antimonides) == 2
+
+    bismuth_antimonides = get_optimade_cifs(elements=["Bi", "Sb"])
+    assert len(bismuth_antimonides) == 2
+
+    sodium_cobalt_oxies = get_optimade_cifs(formula="NaCoO2")
+    assert len(sodium_cobalt_oxies) == 9

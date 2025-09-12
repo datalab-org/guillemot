@@ -1,9 +1,12 @@
 from typing import Literal
 from optimade.client import OptimadeClient
 from optimade.adapters import Structure
+import re
 
+from rich.table import Table
+from rich.console import Console
 
-def _create_optimade_filter(elements: list[str]) -> str:
+def _create_optimade_elements_filter(elements: list[str]) -> str:
     """Creates an OPTIMADE filter string for an exclusive list of elements."""
 
     quoted_elements = [f'"{el}"' for el in elements]
@@ -16,17 +19,31 @@ def _create_optimade_filter(elements: list[str]) -> str:
     return _filter
 
 
+def _sanitize_formula(formula: str) -> str:
+    elements = tuple(re.findall(r"[A-Z][a-z]?", formula))
+    numbers = re.split(r"[A-Z][a-z]?", formula)[1:]
+    numbers = [str(int(num)) if num and str(num) != "1" else "" for num in numbers]
+
+    # sort elements alphabetically and reassemble formula
+    sorted_formula = "".join(f"{el}{num}" for el, num in sorted(zip(elements, numbers)))
+    return sorted_formula
+
+
 def get_optimade_cifs(
-    elements: list[str], database: Literal["cod", "mp", "oqmd"]
+    elements: list[str] | None = None,
+    formula: str | None = None,
+    database: Literal["mp"] = "mp",
 ) -> list[str]:
     """
-    Perform an OPITIMADE query for a set of elements to a restricted set of databases
+    Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases
     and return the results as a list of CIF strings.
 
     Parameters:
         elements: A list of element symbols to query for, e.g., ["Li", "C", "O"].
             Will be treated as an OPTIMADE `HAS ONLY` query, i.e., ?filter=elements HAS ONLY "Li", "C", "O",
             or equivalently ?filter=elements HAS ALL "Li", "C", "O" AND elements LENGTH 3.
+        formula: A chemical formula to query for, e.g., "LiFePO4". If provided, this takes precedence over `elements`, will
+            be sanitized (elements sorted alphabetically, e.g., "FeLiO4P"), and an exact match will be performed.
         database: The database to query, one of "cod" (Crystallography Open Database),
             "mp" (Materials Project), or "oqmd" (Open Quantum Materials Database).
 
@@ -43,21 +60,63 @@ def get_optimade_cifs(
             f"Unknown database {database!r}. Must be one of 'cod', 'mp', or 'oqmd'."
         )
 
-    if not isinstance(elements, list):
-        raise RuntimeError(f"`elements` must be a list of element symbols, not {type(elements)}.")
-
     endpoint = allowed_database_endpoints[database]
     client = OptimadeClient(endpoint)
-    _filter = _create_optimade_filter(elements)
+
+    if elements:
+        if not isinstance(elements, list):
+            raise RuntimeError(
+                f"`elements` must be a list of element symbols, not {type(elements)}."
+            )
+
+        _filter = _create_optimade_elements_filter(elements)
+
+    elif formula:
+        formula = _sanitize_formula(formula)
+        _filter = f'chemical_formula_reduced="{formula}"'
+
+    else:
+        raise RuntimeError("Must provide either `elements` or `formula`.")
+
     results = client.get(_filter)
 
     raw_structures = results["structures"][_filter][endpoint]["data"]
 
-    print(f"Found {len(raw_structures)} structures with {elements=} in {database=}: {[(d['id'], d['attributes'].get('chemical_formula_reduced')) for d in raw_structures]}")
-
     if not raw_structures:
-        raise RuntimeError(f"No structures found for {elements=} in {database=}.")
+        raise RuntimeError(f"No structures found for {elements=}, {formula=} in {database=}.")
+
+    print(f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}")
 
     structures = [Structure(d) for d in raw_structures]
+    pmg_structures = [struct.as_pymatgen for struct in structures]
+
+    table = Table(title=f"OPTIMADE Query Results {elements=}, {formula=}, {database=}")
+    console = Console()
+
+    table.add_column("#")
+    table.add_column("Formula")
+    table.add_column("Spacegroup")
+    table.add_column("a (Å)", justify="right")
+    table.add_column("b (Å)", justify="right")
+    table.add_column("c (Å)", justify="right")
+    table.add_column("α (°)", justify="right")
+    table.add_column("β (°)", justify="right")
+    table.add_column("γ (°)", justify="right")
+
+    for ind, s in enumerate(pmg_structures):
+        spacegroup = s.get_symmetry_dataset()["international"]
+        table.add_row(
+            str(ind),
+            s.reduced_formula.translate(str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")),
+            spacegroup,
+            f"{s.lattice.a:.1f}",
+            f"{s.lattice.b:.1f}",
+            f"{s.lattice.c:.1f}",
+            f"{s.lattice.alpha:.0f}",
+            f"{s.lattice.beta:.0f}",
+            f"{s.lattice.gamma:.0f}",
+        )
+
+    console.print(table)
 
     return [struct.as_cif for struct in structures]
