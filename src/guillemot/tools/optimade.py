@@ -2,6 +2,7 @@ from typing import Literal
 from optimade.client import OptimadeClient
 from optimade.adapters import Structure
 import re
+from pydantic_ai import ModelRetry
 
 from rich.table import Table
 from rich.console import Console
@@ -32,7 +33,7 @@ def _sanitize_formula(formula: str) -> str:
 def get_optimade_cifs(
     elements: list[str] | None = None,
     formula: str | None = None,
-    database: Literal["mp"] = "mp",
+    database: Literal["cod", "mp"] = "cod",
 ) -> list[str]:
     """
     Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases
@@ -72,13 +73,15 @@ def get_optimade_cifs(
         _filter = _create_optimade_elements_filter(elements)
 
     elif formula:
+        if database == "cod":
+            raise ModelRetry("Use elements rather than formula for cod search")
         formula = _sanitize_formula(formula)
         _filter = f'chemical_formula_reduced="{formula}"'
 
     else:
         raise RuntimeError("Must provide either `elements` or `formula`.")
 
-    results = client.get(_filter)
+    results = client.get(_filter, response_fields=["elements", "structure_features", "nsites", "species_at_sites", "cartesian_site_positions", "last_modified"])
 
     raw_structures = results["structures"][_filter][endpoint]["data"]
 
