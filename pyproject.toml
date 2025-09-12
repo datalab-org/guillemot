@@ -29,3 +29,8 @@ guillemot = "guillemot.main:launch"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# ignore F841 in ruff rules
+[tool.ruff.lint]
+select = ["E"]
+ignore = ["E501", "E741"]
