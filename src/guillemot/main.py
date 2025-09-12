@@ -314,5 +314,5 @@ async def main():
         print("Please check your .env file and ensure GEMINI_API_KEY is set correctly.")
 
 
-if __name__ == "__main__":
+def launch():
     asyncio.run(main())
