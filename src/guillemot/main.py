@@ -9,7 +9,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic_ai import Agent, BinaryContent, ImageUrl
 
-from guillemot.tools import run_topas_refinement, save_topas_inp
+from guillemot.tools import run_topas_refinement, save_topas_inp, get_optimade_cifs
 
 # Load environment variables
 load_dotenv()
@@ -139,17 +139,6 @@ def load_local_image(image_path: str) -> BinaryContent | None:
         print(f"❌ Error loading image: {e}")
         return None
 
-
-# Dummy tool function
-def dummy_tool(query: str) -> str:
-    """
-    A dummy tool that returns a fixed response with the input query.
-    In a real app, this could be a weather API, database query, etc.
-    Returns a simple string instead of complex structured data.
-    """
-    return f"🔧 Dummy tool activated! Received query: '{query}'. This is a test response generated at {datetime.now().strftime('%H:%M:%S')}."
-
-
 # Set up the pydantic-ai agent
 def create_agent() -> Agent:
     """Create and configure the pydantic-ai agent"""
@@ -164,7 +153,7 @@ def create_agent() -> Agent:
     with open("examples/NaCoO2/example_refinement_NaCoO2.inp", "r") as f:
         topas_example = f.read()
 
-    # Create the agent with the dummy tool
+    # Create the agent with tools
     agent = Agent(
         model_name,
         system_prompt=f"""You are an agent responsible for performing Rietveld refinements using
@@ -178,7 +167,7 @@ refinements and plan your next refinement.
 
 Here is an example of a topas input file for refinement of a sample of NaCoO2: {topas_example}
     """,
-        tools=[save_topas_inp, run_topas_refinement],
+        tools=[save_topas_inp, run_topas_refinement, get_optimade_cifs],
         instrument=True,
     )
 
