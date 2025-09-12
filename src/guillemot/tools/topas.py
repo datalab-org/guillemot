@@ -2,6 +2,8 @@ import os
 import subprocess
 from os.path import join
 from typing import Optional
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
@@ -74,6 +76,17 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
         outfile_contents = f.read()
 
     refinement_result_path = inp_path.replace(".inp", "_output.txt")
+
+    def plot_refinement_results(refinement_result_path: str):
+        df = pd.read_csv(refinement_result_path, delim_whitespace=True, comment="#")
+        plt.figure()
+        plt.plot(df["2Theta"], df["Yobs"], "o", label="Observed")
+        plt.plot(df["2Theta"], df["Ycalc"], "-", label="Calculated")
+        plt.plot(df["2Theta"], df["Yobs"] - df["Ycalc"], "-", label="Difference")
+        plt.xlabel("2Theta")
+        plt.ylabel("Intensity")
+        plt.legend()
+        plt.title("Topas Refinement Results")
 
     # todo: add tail of log file located at \Science\Topas-7\topas.log
     # todo: make graph of result
