@@ -119,5 +119,6 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
         refinement_result_path=refinement_result_path,
         stdout=result.stdout,
         stderr=result.stderr,
+        logs_tail=None,
         plot_results=plot_results,
     )
