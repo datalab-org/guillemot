@@ -8,7 +8,7 @@ dependencies = [
     "logfire>=4.6.0",
     "pydantic-ai>=1.0.3",
     "python-dotenv>=1.1.1",
-    "optimade[http-client,client]",
+    "optimade[http-client,cif,pymatgen]",
     "matplotlib>=3.10.6",
     "pandas>=2.3.2",
 ]
