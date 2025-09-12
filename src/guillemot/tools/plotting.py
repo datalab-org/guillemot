@@ -72,11 +72,15 @@ def plot_refinement_results(
         # Place hkl labels above the maximum of observed or calculated peak intensity at the tick position
         max_label_y = None
         last_label_x = None
-        min_label_dx = 1.0  # minimum 2theta separation for labels
+        min_label_dx = 0.02 * (x_max - x_min) 
         for tt, inten, h_val, k_val, l_val in zip(two_theta, intensity, h, k, l):
             if x_min <= tt <= x_max:
                 ax_main.vlines(
-                    tt, tick_base, tick_base + inten * 0.1 * (ymax - ymin), color="b", lw=1
+                    tt,
+                    tick_base,
+                    tick_base + inten * 0.1 * (ymax - ymin),
+                    color="b",
+                    lw=1,
                 )
                 # If too close to previous label, shift right to prev_x + min_label_dx
                 if last_label_x is not None and tt - last_label_x < min_label_dx:
@@ -113,7 +117,7 @@ def plot_refinement_results(
     # Adjust ylim to provide a buffer for the highest label
     if hkl_file is not None:
         ymin, ymax = ax_main.get_ylim()
-        if 'max_label_y' in locals() and max_label_y is not None:
+        if "max_label_y" in locals() and max_label_y is not None:
             buffer = 0.1 * (ymax - ymin)
             ax_main.set_ylim(ymin, max(max_label_y + buffer, ymax))
 
