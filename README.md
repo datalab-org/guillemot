@@ -26,7 +26,7 @@ LLM and AI-assisted explorations into fitting of experimental diffraction data, 
 
 Run the chat application:
 ```bash
-python main.py
+uv run python main.py
 ```
 
 ### Available Commands
