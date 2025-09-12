@@ -7,6 +7,7 @@ import pandas as pd
 from guillemot.utils import load_local_image
 from pydantic import BaseModel, field_serializer
 from pydantic_ai import BinaryContent
+import base64
 
 matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
 
