@@ -1,6 +1,7 @@
 from typing import Literal
 from optimade.client import OptimadeClient
 from optimade.adapters import Structure
+from pathlib import Path
 import re
 from pydantic_ai import ModelRetry
 
@@ -35,7 +36,7 @@ def get_optimade_cifs(
     elements: list[str] | None = None,
     formula: str | None = None,
     database: Literal["cod", "mp"] = "cod",
-) -> list[str]:
+) -> list[dict]:
     """
     Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases
     and return the results as a list of CIF strings.
@@ -82,20 +83,23 @@ def get_optimade_cifs(
     else:
         raise RuntimeError("Must provide either `elements` or `formula`.")
 
+    # response fields required to make a CIF
+    response_fields = [
+        "elements",
+        "structure_features",
+        "nsites",
+        "species_at_sites",
+        "species",
+        "cartesian_site_positions",
+        "last_modified",
+        "lattice_vectors",
+        "nperiodic_dimensions",
+        "dimension_types",
+    ]
+
     results = client.get(
         _filter,
-        response_fields=[
-            "elements",
-            "structure_features",
-            "nsites",
-            "species_at_sites",
-            "species",
-            "cartesian_site_positions",
-            "last_modified",
-            "lattice_vectors",
-            "nperiodic_dimensions",
-            "dimension_types",
-        ],
+        response_fields=response_fields,
     )
 
     raw_structures = results["structures"][_filter][endpoint]["data"]
@@ -124,14 +128,18 @@ def get_optimade_cifs(
     table.add_column("α (°)", justify="right")
     table.add_column("β (°)", justify="right")
     table.add_column("γ (°)", justify="right")
+    table.add_column("Disordered?")
 
     for ind, s in enumerate(pmg_structures):
         try:
             spacegroup = s.get_symmetry_dataset()["international"]
         except Exception:
-            spacegroup = "Unknown"
+            spacegroup = None
+
+        structures[ind].entry.attributes.space_group_symbol_hermann_mauguin = spacegroup
+
         table.add_row(
-            str(ind),
+            structures[ind].entry.id,
             s.reduced_formula.translate(str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")),
             spacegroup,
             f"{s.lattice.a:.1f}",
@@ -140,8 +148,18 @@ def get_optimade_cifs(
             f"{s.lattice.alpha:.0f}",
             f"{s.lattice.beta:.0f}",
             f"{s.lattice.gamma:.0f}",
+            "Yes" if "disorder" in structures[ind].entry.attributes.structure_features else "No",
         )
 
     console.print(table)
 
-    return [struct.as_cif for struct in structures]
+
+    for s in structures:
+        _id = s.entry.id
+        if not _id.startswith(database):
+            _id = f"{database}-{_id}"
+
+        with open(Path("cifs") / f"{_id}.cif", "w") as f:
+            f.write(s.as_cif)
+
+    return [s.as_dict for s in structures]
