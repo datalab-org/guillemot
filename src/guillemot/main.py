@@ -117,10 +117,6 @@ def create_agent() -> Agent:
 
     # Get model and API key from environment
     model_name = os.getenv("GUILLEMOT_AI_MODEL", "gemini-2.5-flash-lite")
-    api_key = os.getenv("GEMINI_API_KEY")
-
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY not found in environment variables")
 
     with open("examples/NaCoO2/example_refinement_NaCoO2.inp", "r") as f:
         topas_example = f.read()
