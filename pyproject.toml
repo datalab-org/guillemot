@@ -9,7 +9,12 @@ dependencies = [
     "pydantic-ai>=1.0.3",
     "python-dotenv>=1.1.1",
     "optimade[http-client,client]",
+]
+
+[tool.uv]
+dev-dependencies = [
     "pytest",
+    "pre-commit",
 ]
 
 [build-system]

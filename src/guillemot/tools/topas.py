@@ -8,13 +8,15 @@ from pydantic_ai.exceptions import ModelRetry
 
 RUN_DIR = "run_dir"
 
+
 class SaveInpResult(BaseModel):
     inp_path: str
     line_count: int
 
+
 def save_topas_inp(filename: str, inp_text: str) -> SaveInpResult:
     """
-    A tool that writes a topas .inp file to ./run_dir/ and does some basic checks. 
+    A tool that writes a topas .inp file to ./run_dir/ and does some basic checks.
     The AI model must make sure that the .inp file includes the export lines:
     Out_X_Yobs_Ycalc("<filename>_output.txt")
 
@@ -30,16 +32,18 @@ def save_topas_inp(filename: str, inp_text: str) -> SaveInpResult:
     # Build the expected macro string, then check presence
     output_macro_text = f'Out_X_Yobs_Ycalc("{basename}_output.txt")'
     if output_macro_text not in inp_text:
-        raise ModelRetry(message=f"input file doesn't contain the correct output macro: {output_macro_text}. Please try again.")
+        raise ModelRetry(
+            message=f"input file doesn't contain the correct output macro: {output_macro_text}. Please try again."
+        )
 
-    with open(inp_path, 'w', encoding='utf-8', newline='\n') as f:
+    with open(inp_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(inp_text)
     lines = inp_text.splitlines()
 
     return SaveInpResult(
-        inp_path=inp_path, line_count=len(lines),
+        inp_path=inp_path,
+        line_count=len(lines),
     )
-
 
 
 class RunRefinementResult(BaseModel):
@@ -54,27 +58,31 @@ class RunRefinementResult(BaseModel):
 
 
 def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementResult:
-
     try:
-        result = subprocess.run([r"\Science\Topas-7\tc.exe", inp_path], timeout=timeout_s,
-            text=True, capture_output=True)
+        result = subprocess.run(
+            [r"\Science\Topas-7\tc.exe", inp_path],
+            timeout=timeout_s,
+            text=True,
+            capture_output=True,
+        )
         status = "success" if result.returncode == 0 else "failure"
     except subprocess.TimeoutExpired:
         status = "timeout"
 
-    outfile_path = inp_path.replace('.inp', '.out')
+    outfile_path = inp_path.replace(".inp", ".out")
     with open(outfile_path) as f:
         outfile_contents = f.read()
 
-    refinement_result_path = inp_path.replace('.inp', '_output.txt')
+    refinement_result_path = inp_path.replace(".inp", "_output.txt")
 
     # todo: add tail of log file located at \Science\Topas-7\topas.log
     # todo: make graph of result
 
-
     return RunRefinementResult(
-        status=status, outfile_path=outfile_path, 
+        status=status,
+        outfile_path=outfile_path,
         outfile_contents=outfile_contents,
         refinement_result_path=refinement_result_path,
-        stdout=result.stdout, stderr=result.stderr,
+        stdout=result.stdout,
+        stderr=result.stderr,
     )
