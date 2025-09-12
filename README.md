@@ -10,10 +10,10 @@ LLM and AI-assisted explorations into fitting of experimental diffraction data, 
 
 ## Setup
 
-1. Ensure you have Python 3.10+ installed
+1. Ensure you have [`uv`](https://astral.sh/uv) installed
 2. Install dependencies:
    ```bash
-   uv sync
+   uv sync --all-extras --dev
    ```
 
 3. Set up your environment variables in `.env`:
@@ -26,7 +26,7 @@ LLM and AI-assisted explorations into fitting of experimental diffraction data, 
 
 Run the chat application:
 ```bash
-uv run python main.py
+uv run guillemot
 ```
 
 ### Available Commands
