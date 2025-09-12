@@ -56,7 +56,7 @@ xdd NaCoO2_CuKa_XRD.xy
 		CS_L(@, 300)
 		CS_G(@, 300)
 		Strain_L(@, 0.05)
-		Straing_G(@, 0.05)
+		Strain_G(@, 0.05)
 
 		Phase_Density_g_on_cm3( 0) ' will be filled in once refinement runs
 		
