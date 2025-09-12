@@ -2,14 +2,15 @@ import os
 import subprocess
 from os.path import join
 from typing import Optional
-from guillemot.tools.plotting import plot_refinement_results
 import pathlib
 
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
 
-RUN_DIR = "run_dir"
+from guillemot.tools.plotting import plot_refinement_results
+from guillemot.tools.plotting import PlotResultsOutput, plot_refinement_results
 
+RUN_DIR = "run_dir"
 
 class SaveInpResult(BaseModel):
     inp_path: str
@@ -24,6 +25,7 @@ def save_topas_inp(filename: str, inp_text: str) -> SaveInpResult:
 
     Each str block should also have:
     Out_CIF_STR("<filename>_<phase_name>.cif"). Note that the input filename (without ".inp")
+
     should prefix the phase name.
 
     Blocks are only defined by whitespace and do not need closing tags.
@@ -60,6 +62,7 @@ class RunRefinementResult(BaseModel):
     outfile_contents: Optional[str]
     refinement_result_path: Optional[str]
     logs_tail: Optional[str]
+    plot_results: PlotResultsOutput
     # aux_files: list[str] = Field(default_factory=list)  # any xy/csv exports found
 
 

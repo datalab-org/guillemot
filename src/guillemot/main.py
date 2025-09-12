@@ -2,14 +2,15 @@ import asyncio
 import os
 import re
 from dataclasses import dataclass
-from typing import List, Dict, Any
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 
 from dotenv import load_dotenv
+from guillemot.tools import (get_optimade_cifs, plot_refinement_results,
+                             run_topas_refinement, save_topas_inp)
 from pydantic_ai import Agent, BinaryContent, ImageUrl
-
-from guillemot.tools import run_topas_refinement, save_topas_inp, get_optimade_cifs, plot_refinement_results
+from utils import load_local_image
 
 # Load environment variables
 load_dotenv()
@@ -104,40 +105,6 @@ def extract_local_image_path(text: str) -> tuple[str, str]:
         text_without_path = text.replace(match.group(), "").strip()
         return text_without_path, image_path
     return text, ""
-
-
-def load_local_image(image_path: str) -> BinaryContent | None:
-    """Load a local image file and return BinaryContent"""
-    try:
-        path = Path(image_path)
-        if not path.exists():
-            print(f"❌ Image file not found: {image_path}")
-            return None
-
-        if not path.is_file():
-            print(f"❌ Path is not a file: {image_path}")
-            return None
-
-        # Determine media type based on file extension
-        extension = path.suffix.lower()
-        media_type_map = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".gif": "image/gif",
-            ".bmp": "image/bmp",
-            ".webp": "image/webp",
-        }
-
-        media_type = media_type_map.get(extension, "image/jpeg")
-
-        # Read the image data
-        image_data = path.read_bytes()
-        return BinaryContent(data=image_data, media_type=media_type)
-
-    except Exception as e:
-        print(f"❌ Error loading image: {e}")
-        return None
 
 # Set up the pydantic-ai agent
 def create_agent() -> Agent:

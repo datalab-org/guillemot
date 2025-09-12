@@ -1,10 +1,20 @@
-import matplotlib
-matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
-import matplotlib.pyplot as plt
-import pandas as pd
 from typing import Optional
 
-def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional[str]=None):
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+from pydantic import BaseModel
+from pydantic_ai import BinaryContent
+from utils import load_local_image
+
+matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
+
+
+class PlotResultsOutput(BaseModel):
+    output_filepath: str
+    output_image: BinaryContent
+
+def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional[str]=None) -> PlotResultsOutput:
     """
     A tool that plots the results of a TOPAS refinement from the refinement output file and generates a PNG image.
     Parameters:
@@ -59,6 +69,8 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close(fig)  # ensure no GUI resources are kept
+
+    return PlotResultsOutput(output_filepath=save_path, output_image=load_local_image(save_path))
 
 # Example usage:
 if __name__ == "__main__":
