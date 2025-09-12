@@ -9,7 +9,8 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 from guillemot.tools import (
     get_optimade_structures,
-    print_structure, print_structures,
+    print_structure,
+    print_structures,
     plot_refinement_results,
     run_topas_refinement,
     save_topas_inp,

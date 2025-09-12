@@ -124,6 +124,7 @@ def get_optimade_structures(
 
     return [Structure(d).as_dict for d in raw_structures]
 
+
 def print_structures(structures: list[dict]) -> str:
     """Prints the structure query results as passed.
 
@@ -163,12 +164,15 @@ def print_structures(structures: list[dict]) -> str:
             f"{s.lattice.alpha:.0f}",
             f"{s.lattice.beta:.0f}",
             f"{s.lattice.gamma:.0f}",
-            "Yes" if "disorder" in structures[ind]["attributes"]["structure_features"] else "No",
+            "Yes"
+            if "disorder" in structures[ind]["attributes"]["structure_features"]
+            else "No",
         )
 
     console.print(table)
 
     return str(table)
+
 
 def print_structure(structure: dict) -> str:
     """Focus in on a single structure and print the lattice, atom positions and space group to
@@ -181,4 +185,3 @@ def print_structure(structure: dict) -> str:
     pmg = Structure(structure).as_pmg
     print(pmg)
     return str(pmg)
-
