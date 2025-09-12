@@ -39,7 +39,8 @@ def get_optimade_cifs(
 ) -> list[dict]:
     """
     Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases
-    and return the results as a list of CIF strings.
+    and save all cif files in the `./cifs` directory, named by database ID and entry ID, e.g.,
+    `mp-1234.cif` or `cod-1234567.cif`.
 
     Parameters:
         elements: A list of element symbols to query for, e.g., ["Li", "C", "O"].

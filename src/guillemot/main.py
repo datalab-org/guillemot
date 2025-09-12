@@ -139,6 +139,12 @@ refinements and plan your next refinement.
 Give a summary of what you've done at the end, telling each refinement you did, explaining any errors you found,
 and explaining why you made changes before the next refinement.
 
+If the user does not provide a CIF, you can search in the Materials Project or Crystallography Open Database
+via OPTIMADE. These searches will typically return a table of structures matching the query, and you should pick
+the most appropriate one to start from out of the `./cifs` folder based on the table summary. 
+You can always change your mind and go back to a different structure by loading a different CIF from the `./cifs` folder.
+In the TOPAS inputs, you can refer to the cifs as `../cifs/cod-1234567.cif` or `../cifs/mp-1234.cif` depending on the database and entry ID.
+
 Here is an example of a topas input file for refinement of a sample of NaCoO2: {topas_example}
     """,
         tools=[
