@@ -72,7 +72,7 @@ def plot_refinement_results(
         # Place hkl labels above the maximum of observed or calculated peak intensity at the tick position
         max_label_y = None
         last_label_x = None
-        min_label_dx = 0.02 * (x_max - x_min) 
+        min_label_dx = 0.02 * (x_max - x_min)
         for tt, inten, h_val, k_val, l_val in zip(two_theta, intensity, h, k, l):
             if x_min <= tt <= x_max:
                 ax_main.vlines(
