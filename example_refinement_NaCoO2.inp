@@ -44,10 +44,11 @@ xdd NaCoO2_CuKa_XRD.xy
 		volume  75.837
 		space_group 194 
 
-		site Co1 num_posns  2  x 0             y 0             z 0.5           occ Co+3 occCo1  1.00000 beq 0.27          
-		site Na1 num_posns  2  x 0             y 0             z 0.25          occ Na+1 occNa1  0.23000 beq 1.3           
-		site Na2 num_posns  2  x =2/3;         y =1/3;         z 0.25          occ Na+1 occNa2  0.51000 beq 1.3           
-		site O1  num_posns  4  x =1/3;         y =2/3;         z @  0.09130 occ O-2    1.00000  beq 0.54          
+		'num_posns value will be replaced with the wyckoff multiplicity of the site
+		site Co1 num_posns  0  x 0             y 0             z 0.5           occ Co+3 occCo1  1.00000 beq 0.27          
+		site Na1 num_posns  0  x 0             y 0             z 0.25          occ Na+1 occNa1  0.23000 beq 1.3           
+		site Na2 num_posns  0  x =2/3;         y =1/3;         z 0.25          occ Na+1 occNa2  0.51000 beq 1.3           
+		site O1  num_posns  0  x =1/3;         y =2/3;         z @  0.09130 occ O-2    1.00000  beq 0.54          
  
 		scale @  0.00236687584
 		r_bragg  1.25689493
@@ -61,3 +62,6 @@ xdd NaCoO2_CuKa_XRD.xy
 		
 		Preferred_Orientation(@, 0.5,, 0 0 1) 'preferred orientation is sometimes needed for layered phases
 		Out_CIF_STR("KD1-2_riet_01.cif")
+
+Out_X_Yobs_Ycalc("example_refinement_NaCoO2_output.txt")
+
