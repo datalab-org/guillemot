@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pydantic import BaseModel
 from pydantic_ai import BinaryContent
-from utils import load_local_image
+from guillemot.utils import load_local_image
 
 matplotlib.use("Agg")  # Use a non-interactive backend to not crash agent
 
