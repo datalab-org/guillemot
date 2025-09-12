@@ -23,7 +23,6 @@ class PlotResultsOutput(BaseModel):
         }
 
 
-
 def plot_refinement_results(
     output_file: str,
     save_path: str,
@@ -155,8 +154,6 @@ def plot_refinement_results(
     return out
 
 
-
-
 def load_local_image(image_path: str) -> BinaryContent | None:
     """Load a local image file and return BinaryContent"""
     try:
@@ -189,6 +186,7 @@ def load_local_image(image_path: str) -> BinaryContent | None:
     except Exception as e:
         print(f"❌ Error loading image: {e}")
         return None
+
 
 # Example usage:
 if __name__ == "__main__":
