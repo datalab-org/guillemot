@@ -18,6 +18,10 @@ dist/
 # VS Code
 .vscode/
 
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
 # macOS
 .DS_Store
 
