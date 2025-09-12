@@ -53,7 +53,7 @@ def get_optimade_cifs(
 
     raw_structures = results["structures"][_filter][endpoint]["data"]
 
-    print(f"Found {len(raw_structures)} structures with {elements=} in {database=}: {[(d['id'], d['attributes']['chemical_formula_reduced']) for d in raw_structures]}")
+    print(f"Found {len(raw_structures)} structures with {elements=} in {database=}: {[(d['id'], d['attributes'].get('chemical_formula_reduced')) for d in raw_structures]}")
 
     if not raw_structures:
         raise RuntimeError(f"No structures found for {elements=} in {database=}.")
