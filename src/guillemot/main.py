@@ -11,7 +11,8 @@ from guillemot.tools import (
     get_optimade_structures,
     print_structure,
     print_structures,
-    plot_refinement_results,
+    plot_refinement_multi_panel,
+    plot_refinement_single_panel,
     run_topas_refinement,
     save_topas_inp,
 )
@@ -135,6 +136,7 @@ to be present based on the pattern, then trying some basic refinements and looki
 iterating to get the fit as good as possible.
 You can also analyze and understand images that users share with you. Use this to look at images of Rietveld
 refinements and plan your next refinement.
+You can use the plot_refinement_single_panel tool to generate a single-panel plot of the refinement results, and specify an x_range to zoom in on a particular region of the diffraction pattern that can help you improve your fit.
 Give a summary of what you've done at the end, telling each refinement you did, explaining any errors you found,
 and explaining why you made changes before the next refinement.
 
@@ -149,7 +151,8 @@ Here is an example of a topas input file for refinement of a sample of NaCoO2: {
             get_optimade_structures,
             print_structure,
             print_structures,
-            plot_refinement_results,
+            plot_refinement_multi_panel,
+            plot_refinement_single_panel,
             get_samples,
             get_sample,
             list_data_files,
