@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from typing import Optional
 
-def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional[str]=None):
+def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional[str]=None, x_range: Optional[tuple]=None):
     """
     A tool that plots the results of a TOPAS refinement from the refinement output file and generates a PNG image.
     Parameters:
@@ -56,6 +56,12 @@ def plot_refinement_results(output_file: str, save_path: str, hkl_file: Optional
     ax_resid.set_xlabel(r"$2\theta$ (°)")
     ax_resid.set_ylabel("Obs-Calc")
 
+    if x_range is not None:
+        ax_resid.set_xlim(x_range[0], x_range[1])
+        max_y = max(yobs[(x >= x_range[0]) & (x <= x_range[1])].max(), ycalc[(x >= x_range[0]) & (x <= x_range[1])].max())
+        ax_main.set_ylim(0, max_y * 1.1)
+
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close(fig)  # ensure no GUI resources are kept
@@ -65,5 +71,6 @@ if __name__ == "__main__":
     plot_refinement_results(
         output_file="examples/FeSb_19RBM/Runs/1/output.txt", 
         save_path="test_plot.png",
-        hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt"
+        hkl_file="examples/FeSb_19RBM/Runs/1/hkl.txt",
+        x_range=(50, 70)
     )
