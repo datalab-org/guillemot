@@ -33,10 +33,12 @@ def get_optimade_cifs(
 
     client = OptimadeClient(endpoint)
 
+    elements = [f'"{el}"' for el in elements]
+
     if len(elements) > 1:
-        _filter = f'elements HAS ALL "{",".join(elements)}" AND elements LENGTH {len(elements)}'
+        _filter = f'elements HAS ALL {",".join(elements)} AND elements LENGTH {len(elements)}'
     else:
-        _filter = f'elements HAS "{elements[0]}" AND elements LENGTH 1'
+        _filter = f'elements HAS {elements[0]} AND elements LENGTH 1'
 
     results = client.get(_filter)
 
