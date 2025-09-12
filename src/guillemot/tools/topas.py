@@ -61,7 +61,7 @@ class RunRefinementResult(BaseModel):
     outfile_contents: Optional[str]
     refinement_result_path: Optional[str]
     logs_tail: Optional[str]
-    plot_results: PlotResultsOutput
+    plot_results: Optional[PlotResultsOutput]
     # aux_files: list[str] = Field(default_factory=list)  # any xy/csv exports found
 
 
@@ -102,6 +102,7 @@ def run_topas_refinement(inp_path: str, timeout_s: int = 60) -> RunRefinementRes
         hkl_file = None
 
     # Only plot if the result file exists
+    plot_results = None
     if refinement_result_path is not None:
         save_path = refinement_result_path.replace("_output.txt", "_plot.png")
         plot_results = plot_refinement_results(
