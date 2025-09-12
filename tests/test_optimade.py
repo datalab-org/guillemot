@@ -25,14 +25,17 @@ def test_sanitize_formula():
 
 
 def test_optimade_getter():
-    antimony = get_optimade_cifs(["Sb"], "mp")
+    antimony = get_optimade_cifs(["Sb"], database="mp")
     assert len(antimony) == 14
 
-    bismuth_antimonides = get_optimade_cifs(elements=["Bi", "Sb"])
+    bismuth_antimonides = get_optimade_cifs(elements=["Bi", "Sb"], database="mp")
     assert len(bismuth_antimonides) == 2
 
-    bismuth_antimonides = get_optimade_cifs(elements=["Bi", "Sb"])
+    bismuth_antimonides = get_optimade_cifs(elements=["Bi", "Sb"], database="mp")
     assert len(bismuth_antimonides) == 2
 
-    sodium_cobalt_oxies = get_optimade_cifs(formula="NaCoO2")
+    sodium_cobalt_oxies = get_optimade_cifs(formula="NaCoO2", database="mp")
     assert len(sodium_cobalt_oxies) == 9
+
+    bismuth_antimonides = get_optimade_cifs(elements=["Sb"], database="cod")
+    assert len(bismuth_antimonides) == 2
