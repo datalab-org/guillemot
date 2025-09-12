@@ -27,7 +27,9 @@ def save_topas_inp(filename: str, inp_text: str) -> SaveInpResult:
     os.makedirs(RUN_DIR, exist_ok=True)
     inp_path = join(RUN_DIR, f"{basename}.inp")
 
-    if output_macro_text := f'Out_X_Yobs_Ycalc("{basename}_output.txt")' not in inp_text:
+    # Build the expected macro string, then check presence
+    output_macro_text = f'Out_X_Yobs_Ycalc("{basename}_output.txt")'
+    if output_macro_text not in inp_text:
         raise ModelRetry(message=f"input file doesn't contain the correct output macro: {output_macro_text}. Please try again.")
 
     with open(inp_path, 'w', encoding='utf-8', newline='\n') as f:
