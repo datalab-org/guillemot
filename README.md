@@ -4,7 +4,7 @@
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/f979aa22-6c39-4986-861b-53e37b486642" />
 
-LLM and AI-assisted explorations into fitting of experimental diffraction data, coming at you from Team [*datalab*](https://github.com/datalab-org) for the 2025 LLM hackathon.
+LLM and AI-assisted explorations into fitting of experimental diffraction data, coming at you from Team [*datalab*](https://github.com/datalab-org) for the [2025 LLM Hackathon for Applications in Materials Science and Chemistry](https://llmhackathon.github.io/).
 
 </div>
 
@@ -38,11 +38,13 @@ uv run guillemot
 - Local file paths automatically parsed as multimodal input (used by agent to read refinement plots)
 - `save_topas_inp` — Create and save a TOPAS .inp refinement input file; returns the path to the generated .inp.
 - `run_topas_refinement` — Run a TOPAS refinement using a provided .inp and diffraction data; returns paths to result files and logs.
-- `get_optimade_cifs` — Query OPTIMADE providers for crystal structures and save CIFs locally; returns downloaded file paths and basic metadata.
-- `print_structure` — Produce a concise human-readable summary of a single structure (CIF or Structure object) for quick inspection.
-- `print_structures` — Summarize multiple structures in a compact tabular/list form with basic metadata (index, formula, volume, source).
+- `get_optimade_structures` — Query OPTIMADE providers for crystal structures
+  and provide them in context to the agent.
+- `print_structure` — Produce a concise human-readable summary of a single structure for quick inspection.
+- `print_structures` — Summarize multiple structures in a compact tabular/list form with basic metadata (ID, formula, space group, lattice, source).
 - `plot_refinement_results` — Plot observed vs calculated pattern and residuals, optionally annotate HKL ticks, save PNG, and return the image filepath and binary content.
+- `get_sample` and `get_samples` — Download sample metadata from the configured [*datalab*](https://datalab-org.io) to find uploaded XRD patterns.
 
 ## License
 
-MIT License - see LICENSE file for details.
+This hackathon project is released under the terms of the permissive MIT License - see [LICENSE](LICENSE) file for details.
