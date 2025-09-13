@@ -4,6 +4,9 @@
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/f979aa22-6c39-4986-861b-53e37b486642" />
 
+[*Photo: Bill Dix / Audubon Photo
+Award*](https://www.audubon.org/field-guide/bird/black-guillemot)
+
 LLM and AI-assisted explorations into fitting of experimental diffraction data, coming at you from Team [*datalab*](https://github.com/datalab-org) for the [2025 LLM Hackathon for Applications in Materials Science and Chemistry](https://llmhackathon.github.io/).
 
 </div>
