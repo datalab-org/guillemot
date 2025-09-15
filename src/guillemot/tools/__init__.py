@@ -5,7 +5,7 @@ from .topas import (
     SaveInpResult,
 )
 from .optimade import get_optimade_structures, print_structure, print_structures
-from .plotting import plot_refinement_results
+from .plotting import plot_refinement_multi_panel, plot_refinement_single_panel
 
 __all__ = (
     "run_topas_refinement",
@@ -15,4 +15,6 @@ __all__ = (
     "get_optimade_structures",
     "print_structure",
     "print_structures",
+    "plot_refinement_multi_panel",
+    "plot_refinement_single_panel",
 )
