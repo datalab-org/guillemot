@@ -7,7 +7,11 @@ import pathlib
 from typing import IO, Optional, Sequence
 
 from opentelemetry.sdk.trace import ReadableSpan
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
+from opentelemetry.sdk.trace.export import (
+    SimpleSpanProcessor,
+    SpanExporter,
+    SpanExportResult,
+)
 
 TRACE_FILENAME = "trace.jsonl"
 

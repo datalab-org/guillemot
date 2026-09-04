@@ -28,6 +28,7 @@ DENSITY_ERROR = SCALE_ERROR.replace("at LINE 42", "at LINE 43").replace(
     "*** Error at: 1.0E-4", "*** Error at: @"
 )
 
+
 def _inp_lines() -> str:
     body = [f"line {n}" for n in range(1, 41)]
     body += [
@@ -65,7 +66,9 @@ def test_a_single_character_token_is_named_but_not_marked():
 
 def test_context_window_surrounds_the_reported_line():
     excerpt = _inp_excerpt(_inp_lines(), SCALE_ERROR, "x.inp", context=2)
-    numbers = [line.split("|")[0].strip(" >*") for line in excerpt.splitlines() if "|" in line]
+    numbers = [
+        line.split("|")[0].strip(" >*") for line in excerpt.splitlines() if "|" in line
+    ]
 
     assert numbers == ["40", "41", "42", "43", "44"]
 

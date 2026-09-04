@@ -116,9 +116,9 @@ leaving one out is an error at start-up rather than a placeholder sent to the mo
 
 ## Tracing
 
-Each run is instrumented with [Logfire](https://logfire.pydantic.dev). 
+Each run is instrumented with [Logfire](https://logfire.pydantic.dev).
 Each session has its log written to `trace.jsonl` in that session's directory, one JSON object per line, so the record of
-what the agent did sits alongside the .inp files and plots it produced. 
+what the agent did sits alongside the .inp files and plots it produced.
 Setting `LOGFIRE_TOKEN` additionally sends the same spans to the Logfire dashboard for nicer visualisation.
 
 ## License
