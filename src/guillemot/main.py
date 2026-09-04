@@ -104,9 +104,9 @@ def create_agent(prompt: str | None = None) -> Agent:
             print_structure,
             print_structures,
             plot_refinement_results,
-            get_samples,
-            get_sample,
-            list_data_files,
+            #get_samples,
+            #get_sample,
+            #list_data_files,
         ],
         model_settings=model_settings,
         instrument=True,
@@ -226,7 +226,7 @@ async def chat_loop(prompt: str | None = None):
 
 
 def build_task(
-    pattern: str, elements: list[str] | None = None, notes: str | None = None
+    pattern: str = None, elements: list[str] | None = None, opxrd_pattern: int | None = None, notes: str | None = None
 ) -> str:
     """Write the instruction for a one-shot refinement started from the command line."""
     task = [
@@ -252,6 +252,7 @@ async def run_once(
     pattern: str,
     elements: list[str] | None = None,
     notes: str | None = None,
+    opxrd_pattern: int | None = None
     prompt: str | None = None,
 ) -> str:
     """Run a single refinement from the command line and print the result."""
@@ -265,7 +266,7 @@ async def run_once(
     print("=" * 60)
 
     output = await run_and_show(
-        agent, build_task(pattern, elements, notes), CONTEXT_LIMIT
+        agent, build_task(pattern, opxrd_pattern, elements, notes), CONTEXT_LIMIT
     )
     print(output)
     print("=" * 60)
@@ -285,6 +286,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--pattern",
         help="path to the diffraction pattern to refine, e.g. examples/HL2-1/HL2-1_2.xy",
+    )
+    parser.add_argument(
+        "--opxrd-pattern",
+        help="Load a pattern from a local copy of the opXRD database."
     )
     parser.add_argument(
         "--elements",
@@ -325,7 +330,7 @@ async def main(args: argparse.Namespace) -> None:
                 if args.elements
                 else None
             )
-            await run_once(args.pattern, elements, args.notes, args.prompt)
+            await run_once(args.pattern, elements, args.opxrd_pattern, args.notes, args.prompt)
         else:
             await chat_loop(args.prompt)
     except Exception as e:
