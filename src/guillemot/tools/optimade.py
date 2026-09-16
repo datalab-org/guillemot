@@ -43,6 +43,34 @@ def _sanitize_formula(formula: str) -> str:
     return sorted_formula
 
 
+def _without_symmetry_fields(structure: dict) -> dict:
+    """Copy a record without fields that some providers format nonconformingly."""
+
+    stripped = {**structure, "attributes": structure["attributes"].copy()}
+    for field in SYMMETRY_RESPONSE_FIELDS:
+        stripped["attributes"].pop(field, None)
+    return stripped
+
+
+def _adapt_structure(structure: dict) -> dict:
+    """Adapt geometry while retaining deposited symmetry values verbatim."""
+
+    symmetry = {
+        field: structure["attributes"][field]
+        for field in SYMMETRY_RESPONSE_FIELDS
+        if field in structure["attributes"]
+    }
+    adapted = Structure(_without_symmetry_fields(structure)).as_dict
+    adapted["attributes"].update(symmetry)
+    return adapted
+
+
+def _as_pymatgen(structure: dict):
+    """Convert geometry without revalidating provider-specific symmetry syntax."""
+
+    return Structure(_without_symmetry_fields(structure)).as_pymatgen
+
+
 def get_optimade_structures(
     elements: list[str] | None = None,
     formula: str | None = None,
@@ -155,7 +183,7 @@ def get_optimade_structures(
         f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}"
     )
 
-    return [Structure(d).as_dict for d in raw_structures]
+    return [_adapt_structure(d) for d in raw_structures]
 
 
 def _space_group(structure: dict, pmg_structure) -> tuple[str | None, str]:
@@ -204,7 +232,7 @@ def print_structures(structures: list[dict]) -> str:
     table.add_column("Disordered?")
 
     for ind, s in enumerate(structures):
-        s = Structure(s).as_pymatgen
+        s = _as_pymatgen(s)
         spacegroup, symmetry_source = _space_group(structures[ind], s)
 
         table.add_row(
@@ -238,7 +266,7 @@ def print_structure(structure: dict) -> str:
         structure: An optimade Structure object.
 
     """
-    pmg = Structure(structure).as_pymatgen
+    pmg = _as_pymatgen(structure)
     attributes = structure.get("attributes", {})
     spacegroup, symmetry_source = _space_group(structure, pmg)
     symmetry = [

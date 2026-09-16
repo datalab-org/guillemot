@@ -5,6 +5,7 @@ from guillemot.tools.optimade import (
     COD_OPTIMADE_VERSION,
     SYMMETRY_RESPONSE_FIELDS,
     _create_optimade_elements_filter,
+    _adapt_structure,
     _sanitize_formula,
     _space_group,
 )
@@ -52,9 +53,31 @@ def test_cod_uses_latest_version_and_requests_deposited_symmetry():
 
     call = client.get_one.call_args
     assert f"/{COD_OPTIMADE_VERSION}/structures?" in call.kwargs["override_url"]
-    assert set(SYMMETRY_RESPONSE_FIELDS).issubset(
-        set(call.kwargs["response_fields"])
-    )
+    assert set(SYMMETRY_RESPONSE_FIELDS).issubset(set(call.kwargs["response_fields"]))
+
+
+def test_adapter_preserves_nonconforming_deposited_symmetry():
+    structure = {
+        "id": "1512538",
+        "attributes": {
+            "elements": ["Sb"],
+            "space_group_symbol_hermann_mauguin": "R -3 m :R",
+            "space_group_it_number": 166,
+        },
+    }
+    adapted_geometry = {
+        "id": "1512538",
+        "attributes": {"elements": ["Sb"]},
+    }
+
+    with patch("guillemot.tools.optimade.Structure") as structure_type:
+        structure_type.return_value.as_dict = adapted_geometry
+        adapted = _adapt_structure(structure)
+
+    passed_to_adapter = structure_type.call_args.args[0]
+    assert "space_group_symbol_hermann_mauguin" not in passed_to_adapter["attributes"]
+    assert adapted["attributes"]["space_group_symbol_hermann_mauguin"] == "R -3 m :R"
+    assert adapted["attributes"]["space_group_it_number"] == 166
 
 
 def test_deposited_space_group_takes_precedence_over_inference():
