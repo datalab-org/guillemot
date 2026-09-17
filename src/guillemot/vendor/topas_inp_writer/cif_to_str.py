@@ -89,6 +89,7 @@ Usage:
     python3 cif_to_str.py input.cif                  # print to stdout
     python3 cif_to_str.py input.cif -o output.txt     # write to file
     python3 cif_to_str.py input.cif --tolerance 0.002  # coordinate-match tolerance (default 0.0015)
+    python3 cif_to_str.py input.cif --adps             # preserve anisotropic displacement parameters
 """
 
 import sys
@@ -512,6 +513,47 @@ ADP_CIF_TAGS = {
 }
 
 
+def adp_to_beq(row, cell):
+    """Convert a CIF anisotropic U tensor to equivalent isotropic B."""
+    a, b, c, al, be, ga = cell
+    if None in cell:
+        return None
+    ca, cb, cg = (math.cos(math.radians(angle)) for angle in (al, be, ga))
+    sa, sb, sg = (math.sin(math.radians(angle)) for angle in (al, be, ga))
+    volume = a * b * c * math.sqrt(1 + 2 * ca * cb * cg - ca**2 - cb**2 - cg**2)
+    astar, bstar, cstar = b * c * sa / volume, a * c * sb / volume, a * b * sg / volume
+    u11, u22, u33, u12, u13, u23 = (
+        parse_cif_value(row.get(ADP_CIF_TAGS[name], "0")) or 0.0 for name in ADP_NAMES
+    )
+    ueq = (
+        u11 * (a * astar) ** 2
+        + u22 * (b * bstar) ** 2
+        + u33 * (c * cstar) ** 2
+        + 2 * u12 * a * b * astar * bstar * cg
+        + 2 * u13 * a * c * astar * cstar * cb
+        + 2 * u23 * b * c * bstar * cstar * ca
+    ) / 3
+    return 8 * math.pi**2 * ueq
+
+
+def site_beq(row, aniso_row, cell):
+    beq = parse_cif_value(row.get("_atom_site_B_iso_or_equiv", ""))
+    if beq is not None and beq > 0:
+        return beq, None
+
+    u_iso = parse_cif_value(row.get("_atom_site_U_iso_or_equiv", ""))
+    if u_iso is not None and u_iso > 0:
+        beq = 8 * math.pi**2 * u_iso
+        return beq, f"converted U_iso={u_iso:.6g} to beq={beq:.6g}"
+
+    if aniso_row:
+        beq = adp_to_beq(aniso_row, cell)
+        if beq is not None and beq > 0:
+            return beq, f"converted anisotropic U values to beq={beq:.6g}"
+
+    return 1.0, None
+
+
 def normalize_species_symbol(symbol):
     """
     CIF's _atom_site_type_symbol writes oxidation state as
@@ -623,7 +665,7 @@ def topas_safe_identifier(label, used=None):
 # Main conversion
 # ---------------------------------------------------------------------------
 
-def convert(path, tol=0.0015, refine=False):
+def convert(path, tol=0.0015, refine=False, use_adps=False):
     """
     Convert the CIF at `path` into a TOPAS `str { }` block. Returns
     (str_block_text, warnings) -- `warnings` is a list of plain-English
@@ -642,6 +684,10 @@ def convert(path, tol=0.0015, refine=False):
     refine flag is a no-op. Symmetry-forced values are NEVER given '@'
     regardless of this flag -- an angle/length the crystal system fixes or
     ties is emitted as a bare value or a Get() equation either way.
+
+    `use_adps`: emit anisotropic displacement parameters when present.
+    Otherwise, emit one isotropic beq per site; missing or non-positive
+    values start at 1, and anisotropic values are converted when needed.
 
     Order matters within this function and is not arbitrary: the space-group
     symbol is normalized (stray annotations, axes/origin colon suffixes)
@@ -1064,20 +1110,14 @@ def convert(path, tol=0.0015, refine=False):
             )
             continue
         occ = parse_cif_value(row.get("_atom_site_occupancy", "1")) or 1.0
-        if "_atom_site_B_iso_or_equiv" in row:
-            beq = parse_cif_value(row.get("_atom_site_B_iso_or_equiv", ""))
-        elif "_atom_site_U_iso_or_equiv" in row:
-            u_iso = parse_cif_value(row.get("_atom_site_U_iso_or_equiv", ""))
-            if u_iso is not None:
-                beq = 8 * math.pi ** 2 * u_iso
-                warnings.append(
-                    f"{label}: CIF gives _atom_site_U_iso_or_equiv (U_iso={u_iso:.6g}) rather than "
-                    f"B_iso_or_equiv -- converted to beq = 8*pi^2*U_iso = {beq:.6g}."
-                )
-            else:
-                beq = None
-        else:
-            beq = None
+        aniso_row = aniso_by_label.get(label)
+        aniso_all_zero = aniso_row is not None and all(
+            abs(parse_cif_value(aniso_row.get(tag, "0")) or 0.0) < 1e-12
+            for tag in ADP_CIF_TAGS.values()
+        )
+        beq, conversion = site_beq(row, aniso_row, (a, b, c, al, be, ga))
+        if conversion and not (use_adps and aniso_row and not aniso_all_zero):
+            warnings.append(f"{label}: {conversion}.")
         beq_warning = beq_physicality_warning(label, "isotropic beq (or U_iso-derived beq)", beq)
         if beq_warning:
             warnings.append(beq_warning)
@@ -1091,8 +1131,8 @@ def convert(path, tol=0.0015, refine=False):
                 f"   ' {label}: no _symmetry_equiv_pos_as_xyz loop found -- cannot derive "
                 f"Wyckoff constraints, emitting independent coordinates (VERIFY MANUALLY)"
             )
-            if label in aniso_by_label:
-                adp_row = aniso_by_label[label]
+            if use_adps and aniso_row is not None and not aniso_all_zero:
+                adp_row = aniso_row
                 for name in ("u11", "u22", "u33"):
                     cif_val = parse_cif_value(adp_row.get(ADP_CIF_TAGS[name], "0")) or 0.0
                     aniso_warning = beq_physicality_warning(
@@ -1106,7 +1146,7 @@ def convert(path, tol=0.0015, refine=False):
                     for name in ADP_NAMES
                 )
             else:
-                adp_part = f"  beq @ {beq} {beq_bounds(beq)}" if beq is not None else ""
+                adp_part = f"  beq @ {beq:.6g} {beq_bounds(beq)}"
             out_lines.append(
                 f"   site {site_name}  num_posns 0  x @ {x}  y @ {y}  z @ {z}  occ {type_symbol} {occ}{adp_part}"
             )
@@ -1252,10 +1292,6 @@ def convert(path, tol=0.0015, refine=False):
                 f"Wyckoff table."
             )
 
-        aniso_row = aniso_by_label.get(label)
-        aniso_all_zero = aniso_row is not None and all(
-            abs(parse_cif_value(aniso_row.get(tag, "0")) or 0.0) < 1e-12 for tag in ADP_CIF_TAGS.values()
-        )
         if aniso_all_zero:
             warnings.append(
                 f"{label}: CIF's _atom_site_aniso_* row is all zero (a common unused/placeholder "
@@ -1263,7 +1299,7 @@ def convert(path, tol=0.0015, refine=False):
                 f"value instead of emitting a physically meaningless zero ADP tensor."
             )
 
-        if aniso_row is not None and not aniso_all_zero:
+        if use_adps and aniso_row is not None and not aniso_all_zero:
             adp_row = aniso_row
             adp_constraint = classify_adps(stabilizer)
             adp_parts = []
@@ -1285,7 +1321,7 @@ def convert(path, tol=0.0015, refine=False):
                     adp_parts.append(f"{name} = {format_adp_tie(kind[1])};")
             adp_part = "  " + "  ".join(adp_parts)
         else:
-            adp_part = f"  beq @ {beq} {beq_bounds(beq)}" if beq is not None else ""
+            adp_part = f"  beq @ {beq:.6g} {beq_bounds(beq)}"
         out_lines.append(f"   site {site_name}  num_posns {computed_mult}  {'  '.join(coord_parts)}  occ {type_symbol} {occ:.6g}{adp_part}")
 
     return "\n".join(out_lines), warnings
@@ -1297,9 +1333,10 @@ def main():
     parser.add_argument("-o", "--output", help="write to this file instead of stdout")
     parser.add_argument("--tolerance", type=float, default=0.0015,
                          help="coordinate-match tolerance for stabilizer/fraction detection (default 0.0015)")
+    parser.add_argument("--adps", action="store_true", help="emit anisotropic displacement parameters when present")
     args = parser.parse_args()
 
-    text, warnings = convert(args.cif_file, tol=args.tolerance)
+    text, warnings = convert(args.cif_file, tol=args.tolerance, use_adps=args.adps)
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
