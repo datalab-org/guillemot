@@ -3,7 +3,6 @@ from optimade.client import OptimadeClient
 from optimade.adapters import Structure
 from pathlib import Path
 import re
-import tempfile
 from urllib.request import urlopen
 from pydantic_ai import ModelRetry
 
@@ -56,12 +55,11 @@ def _cod_topas_str(structure: dict) -> str | None:
     except OSError as exc:
         raise ModelRetry(f"Could not download {url}: {exc}") from exc
 
-    with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / f"{structure['id']}.cif"
-        path.write_bytes(cif_bytes)
-        text, warnings = cif_to_str(path)
+    path = Path(f"{structure['id']}.cif")
+    path.write_bytes(cif_bytes)
+    text, warnings = cif_to_str(path)
 
-    output = f"' Source CIF: {url}\n{text}"
+    output = f"' Source CIF: {url}\n' Saved CIF: {path.resolve()}\n{text}"
     if warnings:
         output += "\n\n' Conversion warnings:\n" + "\n".join(
             f"' - {warning}" for warning in warnings
