@@ -44,7 +44,7 @@ def _cod_cif_url(structure: dict) -> str | None:
     return f"{COD_CIF_BASE}/{structure['id']}.cif"
 
 
-def _cod_topas_str(structure: dict) -> str | None:
+def _cod_topas_str(structure: dict, use_adps: bool = False) -> str | None:
     url = _cod_cif_url(structure)
     if url is None:
         return None
@@ -57,7 +57,7 @@ def _cod_topas_str(structure: dict) -> str | None:
 
     path = Path(f"{structure['id']}.cif")
     path.write_bytes(cif_bytes)
-    text, warnings = cif_to_str(path)
+    text, warnings = cif_to_str(path, use_adps=use_adps)
 
     output = f"' Source CIF: {url}\n' Saved CIF: {path.resolve()}\n{text}"
     if warnings:
@@ -211,7 +211,7 @@ def print_structures(structures: list[dict]) -> str:
     return str(table)
 
 
-def print_structure(structure: dict) -> str:
+def print_structure(structure: dict, use_adps: bool = False) -> str:
     """Focus in on a single structure and print the lattice, atom positions and space group to
     be used when creating a topas input.
 
@@ -219,9 +219,10 @@ def print_structure(structure: dict) -> str:
 
     Paramters:
         structure: An optimade Structure object.
+        use_adps: Emit anisotropic displacement parameters when available.
 
     """
-    cod_str = _cod_topas_str(structure)
+    cod_str = _cod_topas_str(structure, use_adps=use_adps)
     if cod_str is not None:
         print(cod_str)
         return cod_str
