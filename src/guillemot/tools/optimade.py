@@ -4,7 +4,6 @@ from optimade.adapters import Structure
 from pathlib import Path
 import re
 import tempfile
-from urllib.parse import urlencode
 from urllib.request import urlopen
 from pydantic_ai import ModelRetry
 
@@ -13,15 +12,7 @@ from rich.table import Table
 from rich.console import Console
 
 
-COD_OPTIMADE_VERSION = "v1.3.0"
 COD_CIF_BASE = "https://www.crystallography.net/cod"
-SYMMETRY_RESPONSE_FIELDS = [
-    "space_group_it_number",
-    "space_group_symbol_hall",
-    "space_group_symbol_hermann_mauguin",
-    "space_group_symbol_hermann_mauguin_extended",
-    "space_group_symmetry_operations_xyz",
-]
 
 
 def _create_optimade_elements_filter(elements: list[str]) -> str:
@@ -47,56 +38,18 @@ def _sanitize_formula(formula: str) -> str:
     return sorted_formula
 
 
-def _without_symmetry_fields(structure: dict) -> dict:
-    """Copy a record without fields that some providers format nonconformingly."""
-
-    stripped = {**structure, "attributes": structure["attributes"].copy()}
-    for field in SYMMETRY_RESPONSE_FIELDS:
-        stripped["attributes"].pop(field, None)
-    return stripped
-
-
-def _adapt_structure(structure: dict) -> dict:
-    """Adapt geometry while retaining deposited symmetry and file links."""
-
-    symmetry = {
-        field: structure["attributes"][field]
-        for field in SYMMETRY_RESPONSE_FIELDS
-        if field in structure["attributes"]
-    }
-    adapted = Structure(_without_symmetry_fields(structure)).as_dict
-    adapted["attributes"].update(symmetry)
-    files = structure.get("relationships", {}).get("files")
-    if files is not None:
-        adapted.setdefault("relationships", {})["files"] = files
-    return adapted
-
-
-def _as_pymatgen(structure: dict):
-    """Convert geometry without revalidating provider-specific symmetry syntax."""
-
-    return Structure(_without_symmetry_fields(structure)).as_pymatgen
-
-
-def _cod_cif_name(structure: dict) -> str | None:
+def _cod_cif_url(structure: dict) -> str | None:
     self_url = str(structure.get("links", {}).get("self", ""))
     if "crystallography.net/cod/optimade/" not in self_url:
         return None
-
-    files = structure.get("relationships", {}).get("files", {}).get("data", [])
-    for entry in files:
-        name = str(entry.get("id", ""))
-        if re.fullmatch(r"\d+\.cif", name):
-            return name
-    return None
+    return f"{COD_CIF_BASE}/{structure['id']}.cif"
 
 
 def _cod_topas_str(structure: dict) -> str | None:
-    cif_name = _cod_cif_name(structure)
-    if cif_name is None:
+    url = _cod_cif_url(structure)
+    if url is None:
         return None
 
-    url = f"{COD_CIF_BASE}/{cif_name}"
     try:
         with urlopen(url, timeout=30) as response:
             cif_bytes = response.read()
@@ -104,7 +57,7 @@ def _cod_topas_str(structure: dict) -> str | None:
         raise ModelRetry(f"Could not download {url}: {exc}") from exc
 
     with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / cif_name
+        path = Path(tmp) / f"{structure['id']}.cif"
         path.write_bytes(cif_bytes)
         text, warnings = cif_to_str(path)
 
@@ -120,7 +73,7 @@ def get_optimade_structures(
     elements: list[str] | None = None,
     formula: str | None = None,
     query: str | None = None,
-    database: Literal["cod", "mp", "oqmd"] = "cod",
+    database: Literal["cod", "mp"] = "cod",
 ) -> list[dict]:
     """
     Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases.
@@ -154,7 +107,7 @@ def get_optimade_structures(
         )
 
     endpoint = allowed_database_endpoints[database]
-    client = OptimadeClient(endpoint, use_async=False)
+    client = OptimadeClient(endpoint)
 
     if query:
         _filter = query
@@ -190,34 +143,12 @@ def get_optimade_structures(
         "dimension_types",
     ]
 
-    if database == "cod":
-        # COD's unversioned endpoint currently resolves to OPTIMADE v1.1, which
-        # predates the standard symmetry fields. Use v1.3 explicitly, while
-        # retaining OptimadeClient's parsing, pagination, and error handling.
-        response_fields.extend(SYMMETRY_RESPONSE_FIELDS)
-        query_url = (
-            f"{endpoint.rstrip('/')}/{COD_OPTIMADE_VERSION}/structures?"
-            + urlencode(
-                {
-                    "filter": _filter,
-                    "response_fields": ",".join(response_fields),
-                }
-            )
-        )
-        results = client.get_one(
-            endpoint="structures",
-            filter=_filter,
-            base_url=endpoint,
-            response_fields=response_fields,
-            override_url=query_url,
-        )
-        raw_structures = results[endpoint].asdict()["data"]
-    else:
-        results = client.get(
-            _filter,
-            response_fields=response_fields,
-        )
-        raw_structures = results["structures"][_filter][endpoint]["data"]
+    results = client.get(
+        _filter,
+        response_fields=response_fields,
+    )
+
+    raw_structures = results["structures"][_filter][endpoint]["data"]
 
     if not raw_structures:
         raise ModelRetry(
@@ -228,28 +159,7 @@ def get_optimade_structures(
         f"Found {len(raw_structures)} structures with {elements=}, {formula=} in {database=}"
     )
 
-    return [_adapt_structure(d) for d in raw_structures]
-
-
-def _space_group(structure: dict, pmg_structure) -> tuple[str | None, str]:
-    """Return deposited symmetry when available, otherwise infer it."""
-
-    attributes = structure.get("attributes", {})
-    symbol = attributes.get("space_group_symbol_hermann_mauguin_extended")
-    if not symbol:
-        symbol = attributes.get("space_group_symbol_hermann_mauguin")
-    number = attributes.get("space_group_it_number")
-    if symbol or number:
-        if symbol and number:
-            return f"{symbol} (#{number})", "deposited"
-        if symbol:
-            return str(symbol), "deposited"
-        return f"#{number}", "deposited"
-
-    try:
-        return pmg_structure.get_symmetry_dataset()["international"], "inferred"
-    except Exception:
-        return None, "unavailable"
+    return [Structure(d).as_dict for d in raw_structures]
 
 
 def print_structures(structures: list[dict]) -> str:
@@ -267,7 +177,6 @@ def print_structures(structures: list[dict]) -> str:
     table.add_column("#")
     table.add_column("Formula")
     table.add_column("Spacegroup")
-    table.add_column("Source")
     table.add_column("a (Å)", justify="right")
     table.add_column("b (Å)", justify="right")
     table.add_column("c (Å)", justify="right")
@@ -277,14 +186,17 @@ def print_structures(structures: list[dict]) -> str:
     table.add_column("Disordered?")
 
     for ind, s in enumerate(structures):
-        s = _as_pymatgen(s)
-        spacegroup, symmetry_source = _space_group(structures[ind], s)
+        s = Structure(s).as_pymatgen
+
+        try:
+            spacegroup = s.get_symmetry_dataset()["international"]
+        except Exception:
+            spacegroup = None
 
         table.add_row(
             structures[ind]["id"],
             s.reduced_formula.translate(str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")),
             spacegroup,
-            symmetry_source,
             f"{s.lattice.a:.1f}",
             f"{s.lattice.b:.1f}",
             f"{s.lattice.c:.1f}",
@@ -316,16 +228,6 @@ def print_structure(structure: dict) -> str:
         print(cod_str)
         return cod_str
 
-    pmg = _as_pymatgen(structure)
-    attributes = structure.get("attributes", {})
-    spacegroup, symmetry_source = _space_group(structure, pmg)
-    symmetry = [
-        f"Space group: {spacegroup or 'unavailable'} ({symmetry_source})",
-        f"Hall symbol: {attributes.get('space_group_symbol_hall')}",
-    ]
-    operations = attributes.get("space_group_symmetry_operations_xyz")
-    if operations:
-        symmetry.append("Symmetry operations: " + "; ".join(operations))
-    output = "\n".join(symmetry + ["", str(pmg)])
-    print(output)
-    return output
+    pmg = Structure(structure).as_pymatgen
+    print(pmg)
+    return str(pmg)
