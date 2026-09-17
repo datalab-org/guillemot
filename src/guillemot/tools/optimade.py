@@ -3,14 +3,18 @@ from optimade.client import OptimadeClient
 from optimade.adapters import Structure
 from pathlib import Path
 import re
+import tempfile
 from urllib.parse import urlencode
+from urllib.request import urlopen
 from pydantic_ai import ModelRetry
 
+from guillemot.vendor.topas_inp_writer.cif_to_str import convert as cif_to_str
 from rich.table import Table
 from rich.console import Console
 
 
 COD_OPTIMADE_VERSION = "v1.3.0"
+COD_CIF_BASE = "https://www.crystallography.net/cod"
 SYMMETRY_RESPONSE_FIELDS = [
     "space_group_it_number",
     "space_group_symbol_hall",
@@ -53,7 +57,7 @@ def _without_symmetry_fields(structure: dict) -> dict:
 
 
 def _adapt_structure(structure: dict) -> dict:
-    """Adapt geometry while retaining deposited symmetry values verbatim."""
+    """Adapt geometry while retaining deposited symmetry and file links."""
 
     symmetry = {
         field: structure["attributes"][field]
@@ -62,6 +66,9 @@ def _adapt_structure(structure: dict) -> dict:
     }
     adapted = Structure(_without_symmetry_fields(structure)).as_dict
     adapted["attributes"].update(symmetry)
+    files = structure.get("relationships", {}).get("files")
+    if files is not None:
+        adapted.setdefault("relationships", {})["files"] = files
     return adapted
 
 
@@ -69,6 +76,44 @@ def _as_pymatgen(structure: dict):
     """Convert geometry without revalidating provider-specific symmetry syntax."""
 
     return Structure(_without_symmetry_fields(structure)).as_pymatgen
+
+
+def _cod_cif_name(structure: dict) -> str | None:
+    self_url = str(structure.get("links", {}).get("self", ""))
+    if "crystallography.net/cod/optimade/" not in self_url:
+        return None
+
+    files = structure.get("relationships", {}).get("files", {}).get("data", [])
+    for entry in files:
+        name = str(entry.get("id", ""))
+        if re.fullmatch(r"\d+\.cif", name):
+            return name
+    return None
+
+
+def _cod_topas_str(structure: dict) -> str | None:
+    cif_name = _cod_cif_name(structure)
+    if cif_name is None:
+        return None
+
+    url = f"{COD_CIF_BASE}/{cif_name}"
+    try:
+        with urlopen(url, timeout=30) as response:
+            cif_bytes = response.read()
+    except OSError as exc:
+        raise ModelRetry(f"Could not download {url}: {exc}") from exc
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / cif_name
+        path.write_bytes(cif_bytes)
+        text, warnings = cif_to_str(path)
+
+    output = f"' Source CIF: {url}\n{text}"
+    if warnings:
+        output += "\n\n' Conversion warnings:\n" + "\n".join(
+            f"' - {warning}" for warning in warnings
+        )
+    return output
 
 
 def get_optimade_structures(
@@ -266,6 +311,11 @@ def print_structure(structure: dict) -> str:
         structure: An optimade Structure object.
 
     """
+    cod_str = _cod_topas_str(structure)
+    if cod_str is not None:
+        print(cod_str)
+        return cod_str
+
     pmg = _as_pymatgen(structure)
     attributes = structure.get("attributes", {})
     spacegroup, symmetry_source = _space_group(structure, pmg)
