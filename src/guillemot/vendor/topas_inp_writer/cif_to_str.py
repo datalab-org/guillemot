@@ -65,16 +65,9 @@ Method (per atom site):
 
 Known limitations (be upfront about these, don't claim more than is true):
   - Prefers the CIF's own `_symmetry_equiv_pos_as_xyz` (or
-    `_space_group_symop_operation_xyz`) loop. If absent, falls back to
-    resolving operators via TOPAS's own space-group database instead of
-    guessing: `resolve_sg_operators()` reads an already-generated
-    TOPAS_DIR/sg/<symbol>.sg if present, or generates one with
-    `sgcom6.exe SYMBOL -dir sg` (run from TOPAS_DIR). This needs TOPAS_DIR
-    set and the CIF's space_group string to already be in the concise form
-    sgcom6.exe recognizes (`fm-3m`, `p21/n`) -- not CIF's underscore-spaced
-    style (`F_M_3_M`). If TOPAS_DIR is unset or the symbol doesn't resolve,
-    it says so plainly and emits independent (unconstrained) coordinates
-    rather than guessing.
+    `_space_group_symop_operation_xyz`) loop. If absent or malformed, it
+    warns that `sgcom6.exe` must be run on the TOPAS host and emits
+    independent coordinates rather than guessing.
   - Coordinate-tie detection only handles the crystallographically normal
     case of integer (-1/0/1) rotation-matrix entries (true for every
     standard space-group operator) -- this is not a general linear-algebra
@@ -103,11 +96,8 @@ import os
 import re
 import math
 import argparse
-import subprocess
-import shutil
 from fractions import Fraction
 
-from . import topas_install
 from .symmetry_utils import (
     parse_symop_string,
     find_stabilizer,
@@ -120,7 +110,6 @@ from .symmetry_utils import (
     classify_crystal_system,
     ANGLE_CONSTRAINTS_BY_SYSTEM,
     resolve_sg_operators,
-    parse_sg_file,
     snap_to_fraction,
     classify_adps,
     format_adp_tie,
@@ -273,130 +262,10 @@ def parse_colon_suffix(symbol):
     return symbol, None, None
 
 
-def generation_symbol_for_colon_suffix(symbol):
-    """The symbol to actually pass to sgcom6.exe -- bare (suffix stripped)
-    for ':H'/':1', unchanged for ':R'/':2'+."""
-    base, kind, val = parse_colon_suffix(symbol)
-    if (kind == "axes" and val == "H") or (kind == "origin" and val == "1"):
-        return base
-    return symbol
-
-
-def sg_filename_for_colon_symbol(base, kind, val):
-    """Predicts the .sg filename sgcom6.exe itself writes for a
-    colon-suffixed symbol already split via parse_colon_suffix."""
-    s = re.sub(r"[\s_]", "", base).lower().replace("/", "o")
-    if kind == "axes":
-        return s + ".sg" if val == "H" else s + "r.sg"
-    return s + ".sg" if val == "1" else s + "q" + val + ".sg"
-
-
-def resolve_colon_suffixed_sg_operators(symbol):
-    """
-    Local replacement for symmetry_utils.resolve_sg_operators, used only
-    for colon-suffixed symbols (everything else still goes through the
-    normal, unmodified function) -- generates/reads the .sg file under the
-    correct filename per the module-level note above, then reuses
-    symmetry_utils.parse_sg_file (a dumb text parser with no symbol
-    prediction of its own) to read its operators. Returns
-    (symops, header, message), matching resolve_sg_operators's own shape.
-    """
-    topas_dir, found = topas_install.get_topas_dir()
-    if not found:
-        return [], {}, "TOPAS_DIR is not set -- cannot resolve symmetry operators via sgcom6.exe."
-    sgcom6_path = os.path.join(topas_dir, "sgcom6.exe")
-    sg_dir = os.path.join(topas_dir, "sg")
-    if not os.path.isfile(sgcom6_path):
-        return [], {}, f"sgcom6.exe not found under TOPAS_DIR ({topas_dir})."
-
-    base, kind, val = parse_colon_suffix(symbol)
-    gen_symbol = generation_symbol_for_colon_suffix(symbol)
-    filename = sg_filename_for_colon_symbol(base, kind, val)
-    sg_path = os.path.join(sg_dir, filename)
-
-    if not os.path.isfile(sg_path):
-        try:
-            subprocess.run(
-                [sgcom6_path, gen_symbol, "-dir", "sg"],
-                cwd=topas_dir, capture_output=True, timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError) as e:
-            return [], {}, f"Failed to run sgcom6.exe for symbol {symbol!r}: {e}"
-
-    if not os.path.isfile(sg_path):
-        return [], {}, (
-            f"sgcom6.exe did not produce a .sg file for symbol {symbol!r} "
-            f"(expected {sg_path})."
-        )
-
-    symops, header = parse_sg_file(sg_path)
-    return symops, header, f"Resolved via TOPAS's own space-group database: {sg_path}"
-
-
-_SG_CACHE_WARMED = set()
-
-
-def tc_exe_runtime_filename_for_colon_symbol(base, kind, val):
-    """Predicts the .sg filename tc.exe itself looks for at RUNTIME --
-    identical to sg_filename_for_colon_symbol except for origin choice 1:
-    tc.exe wants '<symbol>1.sg', which sgcom6.exe itself never writes since
-    it has no ':1' concept at all (its own bare-symbol output has no digit,
-    e.g. 'p4onbm.sg') -- confirmed by directly reading tc.exe's own "Cannot
-    open file ..." error message."""
-    s = re.sub(r"[\s_]", "", base).lower().replace("/", "o")
-    if kind == "axes":
-        return s + ".sg" if val == "H" else s + "r.sg"
-    return s + "1.sg" if val == "1" else s + "q" + val + ".sg"
-
-
-def warm_sg_cache(sg_symbol):
-    """
-    Ensures tc.exe can resolve `space_group "sg_symbol"` at RUNTIME without
-    itself needing to shell out to sgcom6.exe (tc.exe can't find it on
-    PATH). A no-op for a bare (non-colon-suffixed) symbol -- tc.exe resolves
-    those natively, no special handling needed.
-
-    Delegates the actual generation step to resolve_colon_suffixed_sg_operators
-    above (already used for the origin-choice/axes-choice comparison itself,
-    so this rarely does any new work -- see its own docstring): it already
-    invokes sgcom6.exe if the .sg file is missing, under the filename
-    sgcom6.exe itself writes -- correct as-is for axes choice and origin
-    choice 2+, which is everything this script's own detection logic above
-    ever actually emits. The one thing that path doesn't cover is origin
-    choice 1 specifically, which needs a SECOND filename (a plain copy)
-    because tc.exe's own runtime lookup for that one case doesn't match
-    what sgcom6.exe wrote -- handled here for completeness, even though
-    this script's own detection never emits a literal ':1' suffix itself
-    (only a CIF whose own H-M symbol already states ':1' explicitly could
-    reach this branch).
-    """
-    if sg_symbol in _SG_CACHE_WARMED:
+def sg_runtime_warning(sg_symbol):
+    if parse_colon_suffix(sg_symbol)[1] is None:
         return None
-    _SG_CACHE_WARMED.add(sg_symbol)
-
-    base, kind, val = parse_colon_suffix(sg_symbol)
-    if kind is None:
-        return None
-
-    symops, header, message = resolve_colon_suffixed_sg_operators(sg_symbol)
-    if not symops:
-        return message
-
-    topas_dir, found = topas_install.get_topas_dir()
-    if not found:
-        return None  # resolve_colon_suffixed_sg_operators already succeeded, so TOPAS_DIR is set
-    sg_dir = os.path.join(topas_dir, "sg")
-    gen_filename = sg_filename_for_colon_symbol(base, kind, val)
-    runtime_filename = tc_exe_runtime_filename_for_colon_symbol(base, kind, val)
-    if runtime_filename != gen_filename:
-        gen_path = os.path.join(sg_dir, gen_filename)
-        runtime_path = os.path.join(sg_dir, runtime_filename)
-        if os.path.isfile(gen_path) and not os.path.isfile(runtime_path):
-            try:
-                shutil.copyfile(gen_path, runtime_path)
-            except OSError:
-                pass
-    return None
+    return f"{sg_symbol!r} may require an .sg file generated with sgcom6.exe on the TOPAS host"
 
 
 # ---------------------------------------------------------------------------
@@ -675,19 +544,12 @@ def load_atmscat_symbols():
     if _ATMSCAT_SYMBOLS is not None:
         return _ATMSCAT_SYMBOLS
     _ATMSCAT_SYMBOLS = set()
-    try:
-        import topas_install
-        topas_dir, found = topas_install.get_topas_dir()
-        if found:
-            path = os.path.join(topas_dir, "atmscat.txt")
-            if os.path.isfile(path):
-                with open(path, encoding="utf-8", errors="ignore") as f:
-                    for line in f:
-                        m = re.match(r"^\s*([A-Za-z]{1,2}(?:[+-]\d+)?)\s", line)
-                        if m:
-                            _ATMSCAT_SYMBOLS.add(m.group(1))
-    except Exception:
-        pass
+    path = os.path.join(os.path.dirname(__file__), "atmscat.txt")
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            m = re.match(r"^\s*([A-Za-z]{1,2}(?:[+-]\d+)?)\s", line)
+            if m:
+                _ATMSCAT_SYMBOLS.add(m.group(1))
     return _ATMSCAT_SYMBOLS
 
 
@@ -698,8 +560,7 @@ def resolve_scattering_species(symbol):
     it as-is. Otherwise fall back to the bare neutral element -- the same
     manual workaround applied for V+4 in the first pilot batch -- with an
     explicit warning rather than silently emitting a species tc.exe will
-    reject at runtime. If atmscat.txt can't be located at all, the symbol is
-    passed through unchecked (no TOPAS_DIR -- can't verify either way).
+    reject at runtime.
     """
     normalized = normalize_species_symbol(symbol)
     table = load_atmscat_symbols()
@@ -982,7 +843,7 @@ def convert(path, tol=0.0015, refine=False):
         if it_number in ORIGIN_CHOICE_AMBIGUOUS_SG_NUMBERS:
             sg_bare_topas = sg.replace(" ", "_")
             symops_o1, _, _ = resolve_sg_operators(sg_bare_topas)
-            symops_o2, _, _ = resolve_colon_suffixed_sg_operators(sg_bare_topas + ":2")
+            symops_o2, _, _ = resolve_sg_operators(sg_bare_topas + ":2")
             matches_o1 = operator_sets_match(symops, symops_o1)
             matches_o2 = operator_sets_match(symops, symops_o2)
             if matches_o2 and not matches_o1:
@@ -1048,7 +909,7 @@ def convert(path, tol=0.0015, refine=False):
     sg_fallback_warning = None
     if not symops and sg:
         if parse_colon_suffix(sg)[1] is not None:
-            symops, sg_header, sg_message = resolve_colon_suffixed_sg_operators(sg)
+            symops, sg_header, sg_message = resolve_sg_operators(sg)
         else:
             symops, sg_header, sg_message = resolve_sg_operators(sg)
         if symops:
@@ -1141,19 +1002,16 @@ def convert(path, tol=0.0015, refine=False):
                 out_lines.append(f"   {name} {val}")  # forced (e.g. hexagonal ga=120) but not omittable -- never refined
             else:
                 out_lines.append(f"   {name} {flag}{val}")
-    sg_cache_warning = None
+    runtime_warning = None
     if sg:
         sg_topas = sg.replace(" ", "_") + sg_origin_suffix + sg_axes_suffix
         out_lines.append(f'   space_group "{sg_topas}"')
-        sg_cache_warning = warm_sg_cache(sg_topas)
+        runtime_warning = sg_runtime_warning(sg_topas)
     out_lines.append("")
 
     warnings = []
-    if sg_cache_warning:
-        warnings.append(
-            f"space group cache: {sg_cache_warning} -- 'space_group \"{sg_topas}\"' above will "
-            f"fail at tc.exe runtime ('Cannot open file ...sg') until this is resolved."
-        )
+    if runtime_warning:
+        warnings.append(runtime_warning)
     if nonstandard_symbol_warning:
         warnings.append(nonstandard_symbol_warning)
     if stray_annotation_warning:
