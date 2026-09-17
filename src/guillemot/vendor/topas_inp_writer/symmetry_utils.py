@@ -8,10 +8,8 @@ tool -- imported as a library only.
 
 Covers:
   - Parsing symmetry-operator strings ('x+1/2, -y, z' -> rotation+translation)
-  - Resolving a space group's operators via TOPAS's own database
-    (sgcom6.exe / the sg/ directory) when no operator list is available
-    directly (e.g. an .inp file only ever has a space_group symbol, never
-    its own operator loop the way a CIF can)
+  - Reporting when a source lacks symmetry operators and needs manual
+    resolution with sgcom6.exe on the TOPAS host
   - Per-site Wyckoff constraint derivation (fixed / tied-via-Get() / free)
     for both position (classify_coordinates) and the ADP tensor
     (classify_adps -- u11/u22/u33/u12/u13/u23, via R U R^T = U rather than
@@ -32,12 +30,8 @@ etc.) -- kept there rather than duplicated here since that's where it was
 originally developed and verified.
 """
 
-import os
 import re
-import subprocess
 from fractions import Fraction
-
-from . import topas_install
 
 
 # ---------------------------------------------------------------------------
@@ -244,131 +238,11 @@ def complete_centering_operators(symops, sg_symbol, cell_angles=None, tol=1e-4):
     return completed, len(completed) - len(symops)
 
 
-# ---------------------------------------------------------------------------
-# Fallback: resolve symmetry operators via TOPAS's own space-group database
-# (sgcom6.exe / the sg/ directory) -- used whenever operators aren't
-# available directly from the source (a CIF missing its own
-# _symmetry_equiv_pos_as_xyz loop, or an .inp file, which never carries its
-# own operator list at all -- only a space_group symbol).
-# ---------------------------------------------------------------------------
-
-def strip_rhombohedral_axes_suffix(symbol):
-    """
-    CIF's rhombohedral-axes-choice annotation (':H' hexagonal axes, ':R'
-    rhombohedral axes -- e.g. 'R_3_2_:H', 'R_-3_c_:H') is dropped entirely
-    by sgcom6.exe/tc.exe, which resolve the bare symbol straight to the
-    hexagonal-axes .sg file either way (confirmed empirically for two
-    independent symbols: 'R_-3_c_:H' -> r-3c.sg, 'R_3_2_:H' -> r32.sg --
-    NOT 'r-3c:h.sg'/'r32:h.sg' as a naive concatenation would predict).
-    Deliberately narrow: only ':H'/':R' are handled this way. CIF's other
-    colon-suffix convention, the origin-choice qualifier on centrosymmetric
-    groups like P4/n (':1'/':2', e.g. 'P_4/n_b_m_:1'), is NOT touched here
-    -- sgcom6 renders those under its own unpredictable naming (confirmed
-    empirically to NOT be a simple 'append the digit' or 'drop it' rule),
-    and guessing wrong there risks silently resolving the WRONG origin
-    setting relative to the CIF's own atom coordinates, which is worse
-    than an honest failure.
-    """
-    return re.sub(r":\s*[HhRr]\s*$", "", symbol)
-
-
-def sg_filename_for_symbol(symbol):
-    """
-    Predicts the .sg filename sgcom6.exe writes for a given space-group
-    symbol: lowercased, whitespace/underscores stripped, and '/' replaced
-    with 'o' (confirmed empirically -- sgcom6 can't put a literal '/' in a
-    Windows filename, e.g. symbol 'p21/n' -> file 'p21on.sg'; the stored
-    `symbol` field *inside* the file keeps the real '/' unchanged).
-    """
-    symbol = strip_rhombohedral_axes_suffix(symbol)
-    s = re.sub(r"[\s_]", "", symbol).lower()
-    return s.replace("/", "o") + ".sg"
-
-
-def parse_sg_file(path):
-    """
-    Parse a TOPAS .sg file's `xyzs { ... }` block into the same
-    (rows, translation) operator format parse_symop_string produces, plus
-    the `space_group { ... }` header fields (point_group, unique_axis,
-    rhombohedral_hexagonal) as a dict. Comment lines inside `xyzs` (starting
-    with `'`, e.g. "' +(-1/3, 1/3, 1/3) ---") are skipped.
-    """
-    with open(path, encoding="utf-8", errors="ignore") as f:
-        text = f.read()
-
-    header = {}
-    header_match = re.search(r"space_group\s*\{(.*?)\}", text, re.DOTALL)
-    if header_match:
-        for line in header_match.group(1).splitlines():
-            line = line.strip()
-            if not line or line.startswith("'"):
-                continue
-            parts = line.split(None, 1)
-            if len(parts) == 2:
-                header[parts[0]] = parts[1].strip()
-
-    symops = []
-    xyzs_match = re.search(r"xyzs\s*\{(.*?)\}", text, re.DOTALL)
-    if xyzs_match:
-        for line in xyzs_match.group(1).splitlines():
-            line = line.strip()
-            if not line or line.startswith("'"):
-                continue
-            try:
-                symops.append(parse_symop_string(line))
-            except ValueError:
-                continue
-
-    return symops, header
-
-
 def resolve_sg_operators(symbol):
-    """
-    Resolve symmetry operators for `symbol` via TOPAS's own space-group
-    database: read the .sg file if it already exists under TOPAS_DIR/sg
-    (the common case -- 100+ are typically already generated from prior
-    real refinement runs), otherwise generate it with `sgcom6.exe SYMBOL
-    -dir sg` (run from TOPAS_DIR, which sgcom6 requires -- it looks for
-    sgcom5.txt relative to its own working directory, confirmed directly:
-    invoking it from any other cwd fails with "Cannot open file
-    sgcom5.txt").
-
-    Returns (symops, header_dict, message). On failure (TOPAS_DIR unset,
-    sgcom6.exe missing, or the symbol doesn't resolve to a real space
-    group), returns ([], {}, <explanation>) rather than raising -- this is
-    a best-effort fallback, not a hard requirement.
-    """
-    topas_dir, found = topas_install.get_topas_dir()
-    if not found:
-        return [], {}, "TOPAS_DIR is not set -- cannot resolve symmetry operators via sgcom6.exe."
-
-    sgcom6_path = os.path.join(topas_dir, "sgcom6.exe")
-    sg_dir = os.path.join(topas_dir, "sg")
-    if not os.path.isfile(sgcom6_path):
-        return [], {}, f"sgcom6.exe not found under TOPAS_DIR ({topas_dir})."
-
-    filename = sg_filename_for_symbol(symbol)
-    sg_path = os.path.join(sg_dir, filename)
-
-    if not os.path.isfile(sg_path):
-        try:
-            subprocess.run(
-                [sgcom6_path, symbol, "-dir", "sg"],
-                cwd=topas_dir, capture_output=True, timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError) as e:
-            return [], {}, f"Failed to run sgcom6.exe for symbol {symbol!r}: {e}"
-
-    if not os.path.isfile(sg_path):
-        return [], {}, (
-            f"sgcom6.exe did not produce a .sg file for symbol {symbol!r} "
-            f"(expected {sg_path}) -- the symbol likely isn't in a form "
-            f"sgcom6.exe recognizes (it wants the concise form, e.g. "
-            f"'fm-3m' or 'p21/n', not CIF's underscore-spaced style)."
-        )
-
-    symops, header = parse_sg_file(sg_path)
-    return symops, header, f"Resolved via TOPAS's own space-group database: {sg_path}"
+    return [], {}, (
+        f"the CIF does not provide usable symmetry operators for {symbol!r}; "
+        "run sgcom6.exe on the TOPAS host and inspect the resulting .sg file"
+    )
 
 
 # ---------------------------------------------------------------------------
