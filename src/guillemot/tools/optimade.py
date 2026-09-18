@@ -71,28 +71,25 @@ def _cod_topas_str(structure: dict, use_adps: bool = False) -> str | None:
     return _cif_topas_str(path, f"Source CIF: {url}", use_adps)
 
 
-def _mp_topas_str(
-    structure: dict, use_adps: bool = False, symprec: float = 0.1
-) -> str | None:
-    structure_id = str(structure.get("id", ""))
-    if not structure_id.startswith("mp-"):
-        return None
-
-    path = Path(f"{structure_id}.cif")
+def _computational_topas_str(structure: dict, symprec: float = 0.1) -> str:
+    structure_id = str(structure.get("id") or "structure")
+    filename = re.sub(r"[^A-Za-z0-9._-]", "_", structure_id)
+    path = Path(f"{filename}.cif")
     pmg = Structure(structure).as_pymatgen
     CifWriter(pmg, symprec=symprec, angle_tolerance=5).write_file(path)
+    source_url = str((structure.get("links") or {}).get("self") or structure_id)
     source = (
-        f"Source structure: https://materialsproject.org/materials/{structure_id}\n"
+        f"Source structure: {source_url}\n"
         f"' Symmetry inferred by pymatgen/spglib (symprec {symprec:g} A, angle tolerance 5 degrees)"
     )
-    return _cif_topas_str(path, source, use_adps)
+    return _cif_topas_str(path, source, use_adps=False)
 
 
 def get_optimade_structures(
     elements: list[str] | None = None,
     formula: str | None = None,
     query: str | None = None,
-    database: Literal["cod", "mp"] = "cod",
+    database: Literal["cod", "mp", "oqmd"] = "cod",
 ) -> list[dict]:
     """
     Perform an OPITIMADE query for a set of elements or a formula to a restricted set of databases.
@@ -242,18 +239,14 @@ def print_structure(
 
     Paramters:
         structure: An optimade Structure object.
-        use_adps: Emit anisotropic displacement parameters when available.
-        symprec: Distance tolerance in Angstrom used to infer symmetry for Materials
-            Project structures. Increase it when small distortions hide expected symmetry.
+        use_adps: Emit anisotropic displacement parameters from downloaded
+            experimental CIFs when available. Computational structures always use Beq 1.
+        symprec: Distance tolerance in Angstrom used to infer symmetry for computational
+            structures. Increase it when small distortions hide expected symmetry.
 
     """
     topas_str = _cod_topas_str(structure, use_adps=use_adps)
     if topas_str is None:
-        topas_str = _mp_topas_str(structure, use_adps=use_adps, symprec=symprec)
-    if topas_str is not None:
-        print(topas_str)
-        return topas_str
-
-    pmg = Structure(structure).as_pymatgen
-    print(pmg)
-    return str(pmg)
+        topas_str = _computational_topas_str(structure, symprec=symprec)
+    print(topas_str)
+    return topas_str
