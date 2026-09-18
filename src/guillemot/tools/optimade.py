@@ -71,17 +71,19 @@ def _cod_topas_str(structure: dict, use_adps: bool = False) -> str | None:
     return _cif_topas_str(path, f"Source CIF: {url}", use_adps)
 
 
-def _mp_topas_str(structure: dict, use_adps: bool = False) -> str | None:
+def _mp_topas_str(
+    structure: dict, use_adps: bool = False, symprec: float = 0.1
+) -> str | None:
     structure_id = str(structure.get("id", ""))
     if not structure_id.startswith("mp-"):
         return None
 
     path = Path(f"{structure_id}.cif")
     pmg = Structure(structure).as_pymatgen
-    CifWriter(pmg, symprec=0.01, angle_tolerance=5, refine_struct=True).write_file(path)
+    CifWriter(pmg, symprec=symprec, angle_tolerance=5).write_file(path)
     source = (
         f"Source structure: https://materialsproject.org/materials/{structure_id}\n"
-        "' Symmetry inferred by pymatgen/spglib (symprec 0.01 A, angle tolerance 5 degrees)"
+        f"' Symmetry inferred by pymatgen/spglib (symprec {symprec:g} A, angle tolerance 5 degrees)"
     )
     return _cif_topas_str(path, source, use_adps)
 
@@ -230,7 +232,9 @@ def print_structures(structures: list[dict]) -> str:
     return str(table)
 
 
-def print_structure(structure: dict, use_adps: bool = False) -> str:
+def print_structure(
+    structure: dict, use_adps: bool = False, symprec: float = 0.1
+) -> str:
     """Focus in on a single structure and print the lattice, atom positions and space group to
     be used when creating a topas input.
 
@@ -239,13 +243,16 @@ def print_structure(structure: dict, use_adps: bool = False) -> str:
     Paramters:
         structure: An optimade Structure object.
         use_adps: Emit anisotropic displacement parameters when available.
+        symprec: Distance tolerance in Angstrom used to infer symmetry for Materials
+            Project structures. Increase it when small distortions hide expected symmetry.
 
     """
-    for converter in (_cod_topas_str, _mp_topas_str):
-        topas_str = converter(structure, use_adps=use_adps)
-        if topas_str is not None:
-            print(topas_str)
-            return topas_str
+    topas_str = _cod_topas_str(structure, use_adps=use_adps)
+    if topas_str is None:
+        topas_str = _mp_topas_str(structure, use_adps=use_adps, symprec=symprec)
+    if topas_str is not None:
+        print(topas_str)
+        return topas_str
 
     pmg = Structure(structure).as_pymatgen
     print(pmg)
