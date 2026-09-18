@@ -2,6 +2,7 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from pymatgen.core import Lattice, Structure as PymatgenStructure
 
 from guillemot.tools import get_optimade_structures, print_structure
@@ -61,8 +62,12 @@ def test_cod_structure_downloads_and_prints_topas_str(tmp_path, monkeypatch):
     assert "site Sb1_2_555" not in output
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "expected_symprec"),
+    [({}, 0.1), ({"symprec": 0.2}, 0.2)],
+)
 def test_mp_structure_writes_symmetrized_cif_and_prints_topas_str(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, kwargs, expected_symprec
 ):
     monkeypatch.chdir(tmp_path)
     pmg = PymatgenStructure.from_spacegroup(
@@ -74,13 +79,16 @@ def test_mp_structure_writes_symmetrized_cif_and_prints_topas_str(
 
     with patch("guillemot.tools.optimade.Structure") as adapter:
         adapter.return_value.as_pymatgen = pmg
-        output = print_structure({"id": "mp-test", "links": None})
+        output = print_structure({"id": "mp-test", "links": None}, **kwargs)
 
     cif = tmp_path / "mp-test.cif"
     assert cif.is_file()
     assert "_symmetry_equiv_pos_as_xyz" in cif.read_text()
     assert f"' Saved CIF: {cif}" in output
-    assert "' Symmetry inferred by pymatgen/spglib" in output
+    assert (
+        f"' Symmetry inferred by pymatgen/spglib (symprec {expected_symprec:g} A"
+        in output
+    )
     assert 'space_group "P-3m1"' in output
     assert "site Na0  num_posns 1  x 0  y 0  z = 1/2;" in output
     assert "site Co1  num_posns 1  x 0  y 0  z 0" in output
