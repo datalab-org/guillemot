@@ -36,6 +36,7 @@ where = ["src"]
 # they are installed with it.
 [tool.setuptools.package-data]
 "guillemot.prompts" = ["*.md", "fragments/*.md"]
+"guillemot.vendor.topas_inp_writer" = ["LICENSE", "UPSTREAM.md", "atmscat.txt"]
 
 # ignore F841 in ruff rules
 [tool.ruff.lint]
