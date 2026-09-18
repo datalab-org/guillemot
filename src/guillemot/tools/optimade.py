@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 from urllib.request import urlopen
 from pydantic_ai import ModelRetry
+from pymatgen.io.cif import CifWriter
 
 from guillemot.vendor.topas_inp_writer.cif_to_str import convert as cif_to_str
 from rich.table import Table
@@ -38,10 +39,20 @@ def _sanitize_formula(formula: str) -> str:
 
 
 def _cod_cif_url(structure: dict) -> str | None:
-    self_url = str(structure.get("links", {}).get("self", ""))
+    self_url = str((structure.get("links") or {}).get("self", ""))
     if "crystallography.net/cod/optimade/" not in self_url:
         return None
     return f"{COD_CIF_BASE}/{structure['id']}.cif"
+
+
+def _cif_topas_str(path: Path, source: str, use_adps: bool) -> str:
+    text, warnings = cif_to_str(path, use_adps=use_adps)
+    output = f"' {source}\n' Saved CIF: {path.resolve()}\n{text}"
+    if warnings:
+        output += "\n\n' Conversion warnings:\n" + "\n".join(
+            f"' - {warning}" for warning in warnings
+        )
+    return output
 
 
 def _cod_topas_str(structure: dict, use_adps: bool = False) -> str | None:
@@ -57,14 +68,22 @@ def _cod_topas_str(structure: dict, use_adps: bool = False) -> str | None:
 
     path = Path(f"{structure['id']}.cif")
     path.write_bytes(cif_bytes)
-    text, warnings = cif_to_str(path, use_adps=use_adps)
+    return _cif_topas_str(path, f"Source CIF: {url}", use_adps)
 
-    output = f"' Source CIF: {url}\n' Saved CIF: {path.resolve()}\n{text}"
-    if warnings:
-        output += "\n\n' Conversion warnings:\n" + "\n".join(
-            f"' - {warning}" for warning in warnings
-        )
-    return output
+
+def _mp_topas_str(structure: dict, use_adps: bool = False) -> str | None:
+    structure_id = str(structure.get("id", ""))
+    if not structure_id.startswith("mp-"):
+        return None
+
+    path = Path(f"{structure_id}.cif")
+    pmg = Structure(structure).as_pymatgen
+    CifWriter(pmg, symprec=0.01, angle_tolerance=5, refine_struct=True).write_file(path)
+    source = (
+        f"Source structure: https://materialsproject.org/materials/{structure_id}\n"
+        "' Symmetry inferred by pymatgen/spglib (symprec 0.01 A, angle tolerance 5 degrees)"
+    )
+    return _cif_topas_str(path, source, use_adps)
 
 
 def get_optimade_structures(
@@ -222,10 +241,11 @@ def print_structure(structure: dict, use_adps: bool = False) -> str:
         use_adps: Emit anisotropic displacement parameters when available.
 
     """
-    cod_str = _cod_topas_str(structure, use_adps=use_adps)
-    if cod_str is not None:
-        print(cod_str)
-        return cod_str
+    for converter in (_cod_topas_str, _mp_topas_str):
+        topas_str = converter(structure, use_adps=use_adps)
+        if topas_str is not None:
+            print(topas_str)
+            return topas_str
 
     pmg = Structure(structure).as_pymatgen
     print(pmg)

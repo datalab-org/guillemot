@@ -2,6 +2,8 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
+from pymatgen.core import Lattice, Structure as PymatgenStructure
+
 from guillemot.tools import get_optimade_structures, print_structure
 from guillemot.tools.optimade import (
     _create_optimade_elements_filter,
@@ -57,6 +59,32 @@ def test_cod_structure_downloads_and_prints_topas_str(tmp_path, monkeypatch):
     assert "site Sb1  num_posns 4  x @ 0.1882  y @ 0.6437  z 0" in output
     assert "site Fe1  num_posns 2  x 0  y 0  z 0" in output
     assert "site Sb1_2_555" not in output
+
+
+def test_mp_structure_writes_symmetrized_cif_and_prints_topas_str(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    pmg = PymatgenStructure.from_spacegroup(
+        "P-3m1",
+        Lattice.hexagonal(3.01, 5.51),
+        ["Na", "Co", "O"],
+        [[0, 0, 0.5], [0, 0, 0], [1 / 3, 2 / 3, 0.2]],
+    )
+
+    with patch("guillemot.tools.optimade.Structure") as adapter:
+        adapter.return_value.as_pymatgen = pmg
+        output = print_structure({"id": "mp-test", "links": None})
+
+    cif = tmp_path / "mp-test.cif"
+    assert cif.is_file()
+    assert "_symmetry_equiv_pos_as_xyz" in cif.read_text()
+    assert f"' Saved CIF: {cif}" in output
+    assert "' Symmetry inferred by pymatgen/spglib" in output
+    assert 'space_group "P-3m1"' in output
+    assert "site Na0  num_posns 1  x 0  y 0  z = 1/2;" in output
+    assert "site Co1  num_posns 1  x 0  y 0  z 0" in output
+    assert "site O2  num_posns 2  x = 1/3;  y = 2/3;  z @ 0.2" in output
 
 
 def test_optimade_getter():
