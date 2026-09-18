@@ -66,7 +66,7 @@ def test_cod_structure_downloads_and_prints_topas_str(tmp_path, monkeypatch):
     ("kwargs", "expected_symprec"),
     [({}, 0.1), ({"symprec": 0.2}, 0.2)],
 )
-def test_mp_structure_writes_symmetrized_cif_and_prints_topas_str(
+def test_computational_structure_writes_symmetrized_cif_and_prints_topas_str(
     tmp_path, monkeypatch, kwargs, expected_symprec
 ):
     monkeypatch.chdir(tmp_path)
@@ -79,9 +79,15 @@ def test_mp_structure_writes_symmetrized_cif_and_prints_topas_str(
 
     with patch("guillemot.tools.optimade.Structure") as adapter:
         adapter.return_value.as_pymatgen = pmg
-        output = print_structure({"id": "mp-test", "links": None}, **kwargs)
+        output = print_structure(
+            {
+                "id": "oqmd/123",
+                "links": {"self": "https://oqmd.org/optimade/v1/structures/123"},
+            },
+            **kwargs,
+        )
 
-    cif = tmp_path / "mp-test.cif"
+    cif = tmp_path / "oqmd_123.cif"
     assert cif.is_file()
     assert "_symmetry_equiv_pos_as_xyz" in cif.read_text()
     assert f"' Saved CIF: {cif}" in output
@@ -93,6 +99,7 @@ def test_mp_structure_writes_symmetrized_cif_and_prints_topas_str(
     assert "site Na0  num_posns 1  x 0  y 0  z = 1/2;" in output
     assert "site Co1  num_posns 1  x 0  y 0  z 0" in output
     assert "site O2  num_posns 2  x = 1/3;  y = 2/3;  z @ 0.2" in output
+    assert output.count("beq @ 1 min -50 max 51") == 3
 
 
 def test_optimade_getter():
